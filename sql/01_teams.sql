@@ -1,0 +1,11 @@
+CREATE TABLE leagues (
+  rank INTEGER PRIMARY KEY,
+  name VARCHAR(60) NOT NULL
+);
+CREATE TABLE teams (
+  key VARCHAR(3) PRIMARY KEY,
+  full_name VARCHAR(60) NOT NULL,
+  short_name VARCHAR(20) NOT NULL,
+  featured BOOLEAN NOT NULL DEFAULT FALSE,
+  league INTEGER REFERENCES leagues(rank) NOT NULL
+);
