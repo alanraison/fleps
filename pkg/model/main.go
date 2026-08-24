@@ -12,12 +12,21 @@ type Fixture struct {
 	AwayTeam Team
 	Date     time.Time
 }
-type FixtureFetcher interface {
-	FetchFixtures(dateRange string, teams []string) []Fixture
-}
 type TeamRepository interface {
-	FindByKey(key string) (Team, error)
+	FindTeamByKey(key string) (Team, error)
 }
 type FixtureRepository interface {
+	// AddFixtures stores the given fixtures in the repository.
 	AddFixtures(fixtures []Fixture) error
+	// ListFixtures returns a list of fixtures between the given dates and for the given teams.
+	// If no teams are provided, all fixtures are returned.
+	ListFixtures(fromDate time.Time, toDate time.Time, teams []string) ([]Fixture, error)
+}
+type Player struct {
+	Email string
+	Name  string
+}
+type PlayerRepository interface {
+	AddPlayer(email string, name string) error
+	ListPlayers() ([]Player, error)
 }

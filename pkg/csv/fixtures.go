@@ -23,11 +23,11 @@ func (c *Csv) readFixtures(r io.Reader) ([]model.Fixture, error) {
 		home := record[0]
 		away := record[1]
 		date := record[2]
-		h, err := c.teamRepo.FindByKey(home)
+		h, err := c.teamRepo.FindTeamByKey(home)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find home team: %w", err)
 		}
-		a, err := c.teamRepo.FindByKey(away)
+		a, err := c.teamRepo.FindTeamByKey(away)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find away team: %w", err)
 		}

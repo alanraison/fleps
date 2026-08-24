@@ -5,13 +5,13 @@ import (
 )
 
 type Database struct {
-	TeamRepo    *TeamRepository
-	FixtureRepo *FixtureRepository
+	*teamRepository
+	*fixtureRepository
 }
 
 func NewDatabase(db *sql.DB) *Database {
 	return &Database{
-		TeamRepo:    &TeamRepository{db: db},
-		FixtureRepo: &FixtureRepository{db: db},
+		teamRepository:    &teamRepository{db: db},
+		fixtureRepository: &fixtureRepository{db: db},
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alanraison/predictions/pkg/model"
 )
@@ -23,11 +24,11 @@ var (
 
 type mockTeamRepository struct{}
 
-type mockFixtureRepository struct{
+type mockFixtureRepository struct {
 	fixtures []model.Fixture
 }
 
-func (m *mockTeamRepository) FindByKey(key string) (model.Team, error) {
+func (m *mockTeamRepository) FindTeamByKey(key string) (model.Team, error) {
 	if team, ok := teams[key]; ok {
 		return team, nil
 	}
@@ -37,6 +38,10 @@ func (m *mockTeamRepository) FindByKey(key string) (model.Team, error) {
 func (m *mockFixtureRepository) AddFixtures(fixtures []model.Fixture) error {
 	m.fixtures = append(m.fixtures, fixtures...)
 	return nil
+}
+
+func (m *mockFixtureRepository) ListFixtures(fromDate time.Time, toDate time.Time, teams []string) ([]model.Fixture, error) {
+	return m.fixtures, nil
 }
 
 func TestReadFixtures(t *testing.T) {

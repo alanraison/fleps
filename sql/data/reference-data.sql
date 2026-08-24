@@ -2,7 +2,7 @@ INSERT INTO leagues (rank,name) VALUES
 (1,'Premier League'),
 (2,'Championship'),
 (3,'League One');
-INSERT INTO teams (full_name,short_name,abbr,featured,league) VALUES
+INSERT INTO teams (full_name,short_name,key,featured,league) VALUES
 ('Arsenal','Arsenal','ARS',TRUE,1),
 ('Aston Villa','Villa','AVL',FALSE,1),
 ('Bournemouth','B''mth','BOU',FALSE,1),
@@ -24,7 +24,7 @@ INSERT INTO teams (full_name,short_name,abbr,featured,league) VALUES
 ('Sunderland','Sunderland','SUN',FALSE,1),
 ('Tottenham Hotspur','Spurs','TOT',FALSE,1);
 
-INSERT INTO teams (full_name,short_name,abbr,featured,league) VALUES
+INSERT INTO teams (full_name,short_name,key,featured,league) VALUES
 ('Birmingham City','Birmingham','BIR',TRUE,2),
 ('Blackburn Rovers','Blackburn','BLK',FALSE,2),
 ('Bolton Wanderers','Bolton','BOL',FALSE,2),
@@ -50,7 +50,7 @@ INSERT INTO teams (full_name,short_name,abbr,featured,league) VALUES
 ('Wolverhampton Wanderers','Wolves','WOL',FALSE,2),
 ('Wrexham','Wrexham','WRX',FALSE,2);
 
-INSERT INTO teams (full_name,short_name,abbr,featured,league) VALUES
+INSERT INTO teams (full_name,short_name,key,featured,league) VALUES
 ('AFC Wimbledon','Wimbledon','WIM',FALSE,3),
 ('Barnsley','Barnsley','BAR',TRUE,3),
 ('Blackpool','Blackpool','BLP',FALSE,3),

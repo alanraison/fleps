@@ -7,11 +7,11 @@ import (
 	"github.com/alanraison/predictions/pkg/model"
 )
 
-type TeamRepository struct {
+type teamRepository struct {
 	db *sql.DB
 }
 
-func (r *TeamRepository) FindByKey(key string) (team *model.Team, ok bool, err error) {
+func (r *teamRepository) FindByKey(key string) (team *model.Team, ok bool, err error) {
 	team = &model.Team{}
 	err = r.db.
 		QueryRow("SELECT key, full_name, short_name FROM teams WHERE key = ?", key).

@@ -1,4 +1,4 @@
-CREATE TABLE player (
+CREATE TABLE players (
   email VARCHAR(100) PRIMARY KEY,
   name VARCHAR(100) NOT NULL
 );
