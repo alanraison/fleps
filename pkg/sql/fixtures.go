@@ -50,12 +50,12 @@ var (
 			date_time BETWEEN ? AND ? AND (home_team IN (%s) OR away_team IN (%s))`
 )
 
-func fmtTeamsQuery(teams []string) (string) {
+func fmtTeamsQuery(teams []string) string {
 	n := len(teams)
 	if n <= 0 {
 		return ""
 	}
-	ph := strings.Repeat("?,", n-1)+"?"
+	ph := strings.Repeat("?,", n-1) + "?"
 	return fmt.Sprintf(teamsQuery, ph, ph)
 }
 
@@ -74,10 +74,7 @@ func (r *fixtureRepository) AddFixtures(fixtures []model.Fixture) error {
 		_, err = stmt.Exec(fixture.HomeTeam.Key, fixture.AwayTeam.Key, fixture.Date)
 		if err != nil {
 			tx.Rollback()
-			// _, err := r.db.Exec("INSERT INTO fixtures (home_team, away_team, date_time) VALUES (?, ?, ?)", fixture.HomeTeam.Key, fixture.AwayTeam.Key, fixture.Date)
-			// if err != nil {
-				return fmt.Errorf("executing statement: %w", err)
-			// }
+			return fmt.Errorf("executing statement: %w", err)
 		}
 	}
 

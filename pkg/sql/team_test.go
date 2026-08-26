@@ -3,49 +3,32 @@ package sql
 import (
 	"database/sql"
 	"testing"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
-func setupTeamRepository(tb testing.TB) (func(tb testing.TB), *teamRepository) {
+func setupDefaultTeamData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
 
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		tb.Fatal(err)
+	if _, err := db.Exec(`INSERT INTO leagues (rank, name) VALUES (1, 'Premier League')`); err != nil {
+		tb.Fatalf("failed to insert league test data: %v", err)
 	}
-
-	if err := ApplyDefaultSchema(db); err != nil {
-		tb.Fatal(err)
-	}
-
-	repo := &teamRepository{db: db}
-
-	return func(tb testing.TB) {
-		tb.Helper()
-		db.Close()
-	}, repo
-}
-
-func setupDefaultTeamData(tb testing.TB, repo *teamRepository) {
-	tb.Helper()
-
-	db := repo.db
 
 	if _, err := db.Exec(`
 		INSERT INTO teams (key, full_name, short_name, league) VALUES
 		('LEE', 'Leeds United', 'Leeds', 1),
-		('MUN', 'Manchester United', 'Man Utd', 1);
+		('MNU', 'Manchester United', 'Man Utd', 1),
+		('ARS', 'Arsenal', 'Arsenal', 1),
+		('CHE', 'Chelsea', 'Chelsea', 1);
 	`); err != nil {
 		tb.Fatalf("failed to insert test data: %v", err)
 	}
 }
 
 func TestTeamRepositoryFindTeamByKey_FindsExistingKey(t *testing.T) {
-	teardown, repo := setupTeamRepository(t)
+	teardown, db := setupTestDB(t)
 	defer teardown(t)
+	repo := &teamRepository{db: db}
 
-	setupDefaultTeamData(t, repo)
+	setupDefaultTeamData(t, db)
 	team, ok, err := repo.FindByKey("LEE")
 	if err != nil {
 		t.Fatalf("FindByKey returned error: %v", err)
@@ -68,10 +51,11 @@ func TestTeamRepositoryFindTeamByKey_FindsExistingKey(t *testing.T) {
 }
 
 func TestTeamRepositoryFindTeamByKey_ReturnsNotFoundForNonExistingKey(t *testing.T) {
-	teardown, repo := setupTeamRepository(t)
+	teardown, db := setupTestDB(t)
 	defer teardown(t)
+	repo := &teamRepository{db: db}
 
-	setupDefaultTeamData(t, repo)
+	setupDefaultTeamData(t, db)
 
 	team, ok, err := repo.FindByKey("XYZ")
 	if err != nil {

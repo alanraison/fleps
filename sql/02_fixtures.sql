@@ -1,7 +1,7 @@
 CREATE TABLE fixtures (
   id INTEGER PRIMARY KEY,
-  home_team VARCHAR(3) REFERENCES teams(abbr) NOT NULL,
-  away_team VARCHAR(3) REFERENCES teams(abbr) NOT NULL,
+  home_team VARCHAR(3) REFERENCES teams(key) NOT NULL,
+  away_team VARCHAR(3) REFERENCES teams(key) NOT NULL,
   date_time TIMESTAMP NOT NULL
 );
 CREATE TABLE results (
