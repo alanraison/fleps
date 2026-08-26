@@ -107,7 +107,7 @@ func TestFixtureRepositoryListFixturesWithAwayTeamFilter(t *testing.T) {
 	setupDefaultFixtureData(t, repo)
 
 	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02", "2023-10-02")
+	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
 
 	fixtures, err := repo.ListFixtures(from, to, []string{"CHE"})
 	if err != nil {
@@ -137,7 +137,7 @@ func TestFixtureRepositoryListFixturesWithNoTeamFilter(t *testing.T) {
 	setupDefaultFixtureData(t, repo)
 
 	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02", "2023-10-02")
+	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
 
 	fixtures, err := repo.ListFixtures(from, to, []string{})
 	if err != nil {
@@ -156,7 +156,7 @@ func TestFixtureRepositoryListFixturesWithHomeAndAwayTeamFilter(t *testing.T) {
 	setupDefaultFixtureData(t, repo)
 
 	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02", "2023-10-02")
+	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
 
 	fixtures, err := repo.ListFixtures(from, to, []string{"LEE", "MNU"})
 	if err != nil {
@@ -186,7 +186,7 @@ func TestFixtureRepositoryListFixturesWithNoMatchingTeams(t *testing.T) {
 	setupDefaultFixtureData(t, repo)
 
 	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02", "2023-10-02")
+	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
 
 	fixtures, err := repo.ListFixtures(from, to, []string{"XYZ"})
 	if err != nil {
@@ -205,7 +205,7 @@ func TestFixtureRepositoryListFixturesWithMatchedDateRange(t *testing.T) {
 	setupDefaultFixtureData(t, repo)
 
 	from, _ := time.Parse("2006-01-02", "2023-10-02")
-	to, _ := time.Parse("2006-01-02", "2023-10-03")
+	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-03 23:59:59")
 
 	fixtures, err := repo.ListFixtures(from, to, []string{})
 	if err != nil {
@@ -235,7 +235,7 @@ func TestFixtureRepositoryListFixturesWithNoMatchingDateRange(t *testing.T) {
 	setupDefaultFixtureData(t, repo)
 
 	from, _ := time.Parse("2006-01-02", "2023-10-03")
-	to, _ := time.Parse("2006-01-02", "2023-10-04")
+	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-04 23:59:59")
 
 	fixtures, err := repo.ListFixtures(from, to, []string{})
 	if err != nil {
@@ -251,8 +251,14 @@ func TestFixtureRepositoryAddFixtures(t *testing.T) {
 	teardown, repo := setupFixturesRepository(t)
 	defer teardown(t)
 
+	repo.db.Exec(`INSERT INTO teams (key, full_name, short_name, league) VALUES
+	('LEE','Leeds United','Leeds', 1),
+	('MNU','Manchester United', 'Man Utd', 1),
+	('ARS','Arsenal','Arsenal', 1),
+	('CHE','Chelsea','Chelsea', 1)`)
+
 	fixturesToAdd := []model.Fixture{
-		{HomeTeam: model.Team{Key: "LEE"}, AwayTeam: model.Team{Key: "MUN"}, Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
+		{HomeTeam: model.Team{Key: "LEE"}, AwayTeam: model.Team{Key: "MNU"}, Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
 		{HomeTeam: model.Team{Key: "ARS"}, AwayTeam: model.Team{Key: "CHE"}, Date: time.Date(2023, 10, 2, 16, 0, 0, 0, time.UTC)},
 	}
 
@@ -262,7 +268,7 @@ func TestFixtureRepositoryAddFixtures(t *testing.T) {
 	}
 
 	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02", "2023-10-02")
+	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
 
 	fixtures, err := repo.ListFixtures(from, to, []string{})
 	if err != nil {
@@ -271,5 +277,24 @@ func TestFixtureRepositoryAddFixtures(t *testing.T) {
 
 	if len(fixtures) != 2 {
 		t.Fatalf("expected 2 fixtures, got %d", len(fixtures))
+	}
+}
+
+func TestFixtureRepositoryShouldFailToAddUnknownTeam(t *testing.T) {
+	teardown, repo := setupFixturesRepository(t)
+	defer teardown(t)
+
+	repo.db.Exec(`INSERT INTO teams (key, full_name, short_name, league) VALUES
+	('LEE','Leeds United','Leeds', 1),
+	('MNU','Manchester United', 'Man Utd', 1)`)
+
+	fixturesToAdd := []model.Fixture{
+		{HomeTeam: model.Team{Key: "LEE"}, AwayTeam: model.Team{Key: "MNU"}, Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
+		{HomeTeam: model.Team{Key: "ARS"}, AwayTeam: model.Team{Key: "CHE"}, Date: time.Date(2023, 10, 2, 16, 0, 0, 0, time.UTC)},
+	}
+
+	err := repo.AddFixtures(fixturesToAdd)
+	if err == nil {
+		t.Fatalf("expected error when adding fixture with unknown team, got nil")
 	}
 }

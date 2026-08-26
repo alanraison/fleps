@@ -28,6 +28,26 @@ func setupPlayerRepository(tb testing.TB) (func(tb testing.TB), model.PlayerRepo
 	}, repo
 }
 
+func setupPredictionRepository(tb testing.TB) (func(tb testing.TB) /*, model.PredictionRepository*/) {
+	tb.Helper()
+
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		tb.Fatal(err)
+	}
+
+	if err := ApplyDefaultSchema(db); err != nil {
+		tb.Fatal(err)
+	}
+
+	// repo := &predictionRepository{db: db}
+
+	return func(tb testing.TB) {
+		tb.Helper()
+		db.Close()
+	} /*, repo */
+}
+
 func TestPlayerRepositoryReturnsEmptyListWhenNoPlayers(t *testing.T) {
 	teardown, repo := setupPlayerRepository(t)
 	defer teardown(t)
@@ -67,4 +87,15 @@ func TestShouldAddPlayer(t *testing.T) {
 	if player.Name != "Alan Raison" {
 		t.Fatalf("expected name 'Alan Raison', got '%s'", player.Name)
 	}
+}
+
+func TestShouldAddPrediction(t *testing.T) {
+	t.Skip()
+	// teardown, repo := setupPredictionRepository(t)
+	// defer teardown(t)
+
+	// err := repo.AddPrediction("alan.raison@gmail.com", "LEE", "MNU", 2, 1)
+	// if err != nil {
+	// 	t.Fatalf("AddPrediction returned error: %v", err)
+	// }
 }
