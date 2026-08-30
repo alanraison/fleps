@@ -27,17 +27,23 @@ func (c *Csv) readFixtures(r io.Reader) ([]model.Fixture, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to find home team: %w", err)
 		}
+		if h == nil {
+			return nil, fmt.Errorf("home team not found: %s", home)
+		}
 		a, err := c.teamRepo.FindTeamByKey(away)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find away team: %w", err)
+		}
+		if a == nil {
+			return nil, fmt.Errorf("away team not found: %s", away)
 		}
 		d, err := time.Parse("2006-01-02T15:04", date)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse date: %w", err)
 		}
 		fixtures[i] = model.Fixture{
-			HomeTeam: h,
-			AwayTeam: a,
+			HomeTeam: *h,
+			AwayTeam: *a,
 			Date:     d,
 		}
 	}

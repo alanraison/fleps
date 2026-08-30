@@ -28,11 +28,11 @@ type mockFixtureRepository struct {
 	fixtures []model.Fixture
 }
 
-func (m *mockTeamRepository) FindTeamByKey(key string) (model.Team, error) {
+func (m *mockTeamRepository) FindTeamByKey(key string) (*model.Team, error) {
 	if team, ok := teams[key]; ok {
-		return team, nil
+		return &team, nil
 	}
-	return model.Team{}, fmt.Errorf("team %s not found", key)
+	return nil, fmt.Errorf("team %s not found", key)
 }
 
 func (m *mockFixtureRepository) AddFixtures(fixtures []model.Fixture) error {

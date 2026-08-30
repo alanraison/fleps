@@ -13,7 +13,7 @@ type Fixture struct {
 	Date     time.Time
 }
 type TeamRepository interface {
-	FindTeamByKey(key string) (Team, error)
+	FindTeamByKey(key string) (*Team, error)
 }
 type FixtureRepository interface {
 	// AddFixtures stores the given fixtures in the repository.
@@ -29,4 +29,14 @@ type Player struct {
 type PlayerRepository interface {
 	AddPlayer(email string, name string) error
 	ListPlayers() ([]Player, error)
+}
+type Prediction struct {
+	Fixture
+	Player    string
+	HomeScore int
+	AwayScore int
+}
+type PredictionRepository interface {
+	AddPrediction(player, homeTeam, awayTeam string, date time.Time, homeScore, awayScore int) error
+	ListPredictions(from, to time.Time) ([]Prediction, error)
 }

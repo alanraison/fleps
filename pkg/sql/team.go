@@ -11,16 +11,22 @@ type teamRepository struct {
 	db *sql.DB
 }
 
-func (r *teamRepository) FindByKey(key string) (team *model.Team, ok bool, err error) {
+func NewTeamRepository(db *sql.DB) *teamRepository {
+	return &teamRepository{
+		db: db,
+	}
+}
+
+func (r *teamRepository) FindTeamByKey(key string) (team *model.Team, err error) {
 	team = &model.Team{}
 	err = r.db.
 		QueryRow("SELECT key, full_name, short_name FROM teams WHERE key = ?", key).
 		Scan(&team.Key, &team.FullName, &team.ShortName)
 	if err == sql.ErrNoRows {
-		return nil, false, nil
+		return nil, nil
 	}
 	if err != nil {
-		return nil, false, fmt.Errorf("finding team by key: %w", err)
+		return nil, fmt.Errorf("finding team by key: %w", err)
 	}
-	return team, true, nil
+	return team, nil
 }

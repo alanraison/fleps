@@ -10,7 +10,7 @@ import (
 func setupTestDB(tb testing.TB) (func(tb testing.TB), *sql.DB) {
 	tb.Helper()
 
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite3", ":memory:?_fks=1")
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -32,4 +32,3 @@ func setupTestDB(tb testing.TB) (func(tb testing.TB), *sql.DB) {
 		_ = db.Close()
 	}, db
 }
-

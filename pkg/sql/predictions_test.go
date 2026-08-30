@@ -3,54 +3,21 @@ package sql
 import (
 	"database/sql"
 	"testing"
-
-	"github.com/alanraison/predictions/pkg/model"
-	_ "github.com/mattn/go-sqlite3"
+	"time"
 )
 
-func setupPlayerRepository(tb testing.TB) (func(tb testing.TB), model.PlayerRepository) {
+func setupDefaultPlayerData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
-
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		tb.Fatal(err)
+	pr := NewPlayerRepository(db)
+	if err := pr.AddPlayer("alan.raison@gmail.com", "Alan Raison"); err != nil {
+		tb.Fatalf("setupDefaultPlayerData returned error: %v", err)
 	}
-
-	if err := ApplyDefaultSchema(db); err != nil {
-		tb.Fatal(err)
-	}
-
-	repo := &playerRepository{db: db}
-
-	return func(tb testing.TB) {
-		tb.Helper()
-		db.Close()
-	}, repo
-}
-
-func setupPredictionRepository(tb testing.TB) (func(tb testing.TB) /*, model.PredictionRepository*/) {
-	tb.Helper()
-
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		tb.Fatal(err)
-	}
-
-	if err := ApplyDefaultSchema(db); err != nil {
-		tb.Fatal(err)
-	}
-
-	// repo := &predictionRepository{db: db}
-
-	return func(tb testing.TB) {
-		tb.Helper()
-		db.Close()
-	} /*, repo */
 }
 
 func TestPlayerRepositoryReturnsEmptyListWhenNoPlayers(t *testing.T) {
-	teardown, repo := setupPlayerRepository(t)
+	teardown, db := setupTestDB(t)
 	defer teardown(t)
+	repo := NewPlayerRepository(db)
 
 	players, err := repo.ListPlayers()
 	if err != nil {
@@ -63,8 +30,9 @@ func TestPlayerRepositoryReturnsEmptyListWhenNoPlayers(t *testing.T) {
 }
 
 func TestShouldAddPlayer(t *testing.T) {
-	teardown, repo := setupPlayerRepository(t)
+	teardown, db := setupTestDB(t)
 	defer teardown(t)
+	repo := NewPlayerRepository(db)
 
 	err := repo.AddPlayer("alan.raison@gmail.com", "Alan Raison")
 	if err != nil {
@@ -90,12 +58,52 @@ func TestShouldAddPlayer(t *testing.T) {
 }
 
 func TestShouldAddPrediction(t *testing.T) {
-	t.Skip()
-	// teardown, repo := setupPredictionRepository(t)
-	// defer teardown(t)
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
 
-	// err := repo.AddPrediction("alan.raison@gmail.com", "LEE", "MNU", 2, 1)
-	// if err != nil {
-	// 	t.Fatalf("AddPrediction returned error: %v", err)
-	// }
+	setupDefaultTeamData(t, db)
+	setupDefaultFixtureData(t, db)
+	setupDefaultPlayerData(t, db)
+
+	fr := NewFixtureRepository(db)
+	repo := NewPredictionRepository(db)
+
+	from, _ := time.Parse("2006-01-02 15:04", "2023-10-01 00:00")
+	to, _ := time.Parse("2006-01-02 15:04", "2023-10-02 23:59")
+
+	fs, err := fr.ListFixtures(from, to, []string{"LEE"})
+	if err != nil {
+		t.Fatalf("ListFixtures returned error: %v", err)
+	}
+	f := fs[0]
+	t.Log("finished listing fixtures")
+
+	err = repo.AddPrediction("alan.raison@gmail.com", f.HomeTeam.Key, f.AwayTeam.Key, f.Date, 2, 1)
+	if err != nil {
+		t.Fatalf("AddPrediction returned error: %v", err)
+	}
+
+	predictions, err := repo.ListPredictions(from, to)
+	if err != nil {
+		t.Fatalf("ListPredictions returned error: %v", err)
+	}
+	if len(predictions) != 1 {
+		t.Fatalf("expected 1 prediction, got %d", len(predictions))
+	}
+	prediction := predictions[0]
+	if prediction.HomeTeam.Key != f.HomeTeam.Key {
+		t.Fatalf("expected home team key '%s', got '%s'", f.HomeTeam.Key, prediction.HomeTeam.Key)
+	}
+	if prediction.AwayTeam.Key != f.AwayTeam.Key {
+		t.Fatalf("expected away team key '%s', got '%s'", f.AwayTeam.Key, prediction.AwayTeam.Key)
+	}
+	if prediction.Date != f.Date {
+		t.Fatalf("expected date '%v', got '%v'", f.Date, prediction.Date)
+	}
+	if prediction.HomeScore != 2 {
+		t.Fatalf("expected home score 2, got %d", prediction.HomeScore)
+	}
+	if prediction.AwayScore != 1 {
+		t.Fatalf("expected away score 1, got %d", prediction.AwayScore)
+	}
 }

@@ -26,15 +26,12 @@ func setupDefaultTeamData(tb testing.TB, db *sql.DB) {
 func TestTeamRepositoryFindTeamByKey_FindsExistingKey(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &teamRepository{db: db}
+	repo := NewTeamRepository(db)
 
 	setupDefaultTeamData(t, db)
-	team, ok, err := repo.FindByKey("LEE")
+	team, err := repo.FindTeamByKey("LEE")
 	if err != nil {
-		t.Fatalf("FindByKey returned error: %v", err)
-	}
-	if !ok {
-		t.Fatal("expected team to be found")
+		t.Fatalf("FindTeamByKey returned error: %v", err)
 	}
 	if team == nil {
 		t.Fatal("expected team, got nil")
@@ -53,18 +50,15 @@ func TestTeamRepositoryFindTeamByKey_FindsExistingKey(t *testing.T) {
 func TestTeamRepositoryFindTeamByKey_ReturnsNotFoundForNonExistingKey(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &teamRepository{db: db}
+	repo := NewTeamRepository(db)
 
 	setupDefaultTeamData(t, db)
 
-	team, ok, err := repo.FindByKey("XYZ")
+	team, err := repo.FindTeamByKey("XYZ")
 	if err != nil {
-		t.Fatalf("FindByKey returned error: %v", err)
-	}
-	if ok {
-		t.Fatal("expected team not to be found")
+		t.Fatalf("FindTeamByKey returned error: %v", err)
 	}
 	if team != nil {
-		t.Fatalf("expected nil team, got %+v", team)
+		t.Fatal("expected team not to be found")
 	}
 }

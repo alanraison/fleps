@@ -13,6 +13,12 @@ type fixtureRepository struct {
 	db *sql.DB
 }
 
+func NewFixtureRepository(db *sql.DB) *fixtureRepository {
+	return &fixtureRepository{
+		db: db,
+	}
+}
+
 var (
 	noTeamsQuery = `
 		SELECT 

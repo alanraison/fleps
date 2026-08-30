@@ -23,7 +23,7 @@ func setupDefaultFixtureData(tb testing.TB, db *sql.DB) {
 func TestFixtureRepositoryReturnsEmptyListWhenNoFixtures(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	from, _ := time.Parse("2006-01-02", "2023-10-01")
 	to, _ := time.Parse("2006-01-02", "2023-10-02")
@@ -41,7 +41,7 @@ func TestFixtureRepositoryReturnsEmptyListWhenNoFixtures(t *testing.T) {
 func TestFixtureRepositoryListFixturesWithHomeTeamFilter(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 	setupDefaultFixtureData(t, db)
@@ -73,7 +73,7 @@ func TestFixtureRepositoryListFixturesWithHomeTeamFilter(t *testing.T) {
 func TestFixtureRepositoryListFixturesWithAwayTeamFilter(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 	setupDefaultFixtureData(t, db)
@@ -105,7 +105,7 @@ func TestFixtureRepositoryListFixturesWithAwayTeamFilter(t *testing.T) {
 func TestFixtureRepositoryListFixturesWithNoTeamFilter(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 	setupDefaultFixtureData(t, db)
@@ -126,7 +126,7 @@ func TestFixtureRepositoryListFixturesWithNoTeamFilter(t *testing.T) {
 func TestFixtureRepositoryListFixturesWithHomeAndAwayTeamFilter(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 	setupDefaultFixtureData(t, db)
@@ -158,7 +158,7 @@ func TestFixtureRepositoryListFixturesWithHomeAndAwayTeamFilter(t *testing.T) {
 func TestFixtureRepositoryListFixturesWithNoMatchingTeams(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 	setupDefaultFixtureData(t, db)
@@ -179,7 +179,7 @@ func TestFixtureRepositoryListFixturesWithNoMatchingTeams(t *testing.T) {
 func TestFixtureRepositoryListFixturesWithMatchedDateRange(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 	setupDefaultFixtureData(t, db)
@@ -211,7 +211,7 @@ func TestFixtureRepositoryListFixturesWithMatchedDateRange(t *testing.T) {
 func TestFixtureRepositoryListFixturesWithNoMatchingDateRange(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 	setupDefaultFixtureData(t, db)
@@ -232,7 +232,7 @@ func TestFixtureRepositoryListFixturesWithNoMatchingDateRange(t *testing.T) {
 func TestFixtureRepositoryAddFixtures(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 
@@ -262,7 +262,7 @@ func TestFixtureRepositoryAddFixtures(t *testing.T) {
 func TestFixtureRepositoryShouldFailToAddUnknownTeam(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := &fixtureRepository{db: db}
+	repo := NewFixtureRepository(db)
 
 	setupDefaultTeamData(t, db)
 
