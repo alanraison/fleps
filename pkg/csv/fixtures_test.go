@@ -1,99 +1,83 @@
 package csv
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/alanraison/predictions/pkg/model"
 )
 
-var (
-	c = &Csv{
-		teamRepo:    &mockTeamRepository{},
-		fixtureRepo: &mockFixtureRepository{},
-	}
-	teams = map[string]model.Team{
-		"ARS": {Key: "ARS", FullName: "Arsenal", ShortName: "Arsenal"},
-		"BOU": {Key: "BOU", FullName: "Bournemouth", ShortName: "Bournemouth"},
-		"LEE": {Key: "LEE", FullName: "Leeds United", ShortName: "Leeds"},
-		"LIV": {Key: "LIV", FullName: "Liverpool", ShortName: "Liverpool"},
-	}
-)
-
 type mockTeamRepository struct{}
 
-type mockFixtureRepository struct {
-	fixtures []model.Fixture
-}
-
-func (m *mockTeamRepository) FindTeamByKey(key string) (*model.Team, error) {
-	if team, ok := teams[key]; ok {
-		return &team, nil
+func (m *mockTeamRepository) FindTeamByKey(key model.TeamKey) (*model.Team, error) {
+	knownTeams := map[model.TeamKey]model.Team{
+		"BHA": {
+			Key:       "BHA",
+			FullName:  "Brighton & Hove Albion",
+			ShortName: "BHA",
+		},
+		"FUL": {
+			Key:       "FUL",
+			FullName:  "Fulham",
+			ShortName: "FUL",
+		},
+		"LEE": {
+			Key:       "LEE",
+			FullName:  "Leeds United",
+			ShortName: "LEE",
+		},
+		"BRE": {
+			Key:       "BRE",
+			FullName:  "Brentford",
+			ShortName: "BRE",
+		},
 	}
-	return nil, fmt.Errorf("team %s not found", key)
+	team, ok := knownTeams[key]
+	if !ok {
+		return nil, model.UnknownTeamErr
+	}
+	return &team, nil
 }
 
-func (m *mockFixtureRepository) AddFixtures(fixtures []model.Fixture) error {
-	m.fixtures = append(m.fixtures, fixtures...)
-	return nil
-}
-
-func (m *mockFixtureRepository) ListFixtures(fromDate time.Time, toDate time.Time, teams []string) ([]model.Fixture, error) {
-	return m.fixtures, nil
-}
-
-func TestReadFixtures(t *testing.T) {
-	csvData := `home_team,away_team,date
-ARS,BOU,2026-09-01T15:00
-LEE,LIV,2026-09-02T16:30
-`
-	fixtures, err := c.readFixtures(strings.NewReader(csvData))
+func TestReadFixtureRows(t *testing.T) {
+	r := strings.NewReader(`2026-08-30 15:00,BHA,FUL
+2026-08-30 14:00,LEE,BRE`)
+	csv := NewCsv(&mockTeamRepository{}, nil)
+	fixtures, err := csv.ReadFixtureRows(r)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(fixtures) != 2 {
 		t.Fatalf("expected 2 fixtures, got %d", len(fixtures))
 	}
-	fixture := fixtures[0]
-	if fixture.HomeTeam.Key != "ARS" {
-		t.Errorf("expected home team 'ARS', got '%s'", fixture.HomeTeam.Key)
+	if fixtures[0].HomeTeam != "BHA" || fixtures[0].AwayTeam != "FUL" {
+		t.Errorf("unexpected first fixture: %+v", fixtures[0])
 	}
-	if fixture.AwayTeam.Key != "BOU" {
-		t.Errorf("expected away team 'BOU', got '%s'", fixture.AwayTeam.Key)
-	}
-	if fixture.Date.Format("2006-01-02T15:04") != "2026-09-01T15:00" {
-		t.Errorf("expected date '2026-09-01T15:00', got '%s'", fixture.Date.Format("2006-01-02T15:04"))
-	}
-	fixture = fixtures[1]
-	if fixture.HomeTeam.Key != "LEE" {
-		t.Errorf("expected home team 'LEE', got '%s'", fixture.HomeTeam.Key)
-	}
-	if fixture.AwayTeam.Key != "LIV" {
-		t.Errorf("expected away team 'LIV', got '%s'", fixture.AwayTeam.Key)
-	}
-	if fixture.Date.Format("2006-01-02T15:04") != "2026-09-02T16:30" {
-		t.Errorf("expected date '2026-09-02T16:30', got '%s'", fixture.Date.Format("2006-01-02T15:04"))
+	if fixtures[1].HomeTeam != "LEE" || fixtures[1].AwayTeam != "BRE" {
+		t.Errorf("unexpected second fixture: %+v", fixtures[1])
 	}
 }
 
-func TestReadFixturesInvalidTeam(t *testing.T) {
-	csvData := `home_team,away_team,date
-ARS,XYZ,2026-09-01T15:00
-`
-	_, err := c.readFixtures(strings.NewReader(csvData))
+func TestReadFixtureRows_UnknownTeam(t *testing.T) {
+	r := strings.NewReader(`2026-08-30 15:00,XYZ,FUL`)
+	csv := NewCsv(&mockTeamRepository{}, nil)
+	_, err := csv.ReadFixtureRows(r)
 	if err == nil {
-		t.Fatal("expected error for invalid team, got nil")
+		t.Fatalf("expected error for unknown team, got nil")
+	}
+	if !errors.Is(err, model.UnknownTeamErr) {
+		t.Fatalf("expected UnknownTeamErr, got %+v", err)
 	}
 }
 
-func TestReadFixturesInvalidDate(t *testing.T) {
-	csvData := `home_team,away_team,date
-ARS,BOU,invalid-date
-`
-	_, err := c.readFixtures(strings.NewReader(csvData))
+func TestReadFixtureRows_BadDate(t *testing.T) {
+	r := strings.NewReader(`2026-08-30 15:00,BHA,FUL
+2026-08-30 14:00,LEE,BRE
+2026-08-30 99:99,BHA,FUL`)
+	csv := NewCsv(&mockTeamRepository{}, nil)
+	_, err := csv.ReadFixtureRows(r)
 	if err == nil {
-		t.Fatal("expected error for invalid date, got nil")
+		t.Fatalf("expected error for bad date, got nil")
 	}
 }

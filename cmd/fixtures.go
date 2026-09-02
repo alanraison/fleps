@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -15,14 +17,38 @@ var (
 		Use:   "add",
 		Short: "Add fixtures from a CSV file",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Add fixtures")
+			fs, err := c.ReadFixtureRows(os.Stdin)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading fixture rows: %v\n", err)
+				return
+			}
+			database.AddFixtures(fs)
 		},
 	}
-	list = &cobra.Command{
+	listFrom, listTo string
+	listTeams        []string
+	list             = &cobra.Command{
 		Use:   "list",
 		Short: "List all fixtures",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("List fixtures")
+			fromDate, err := time.Parse("2006-01-02", listFrom)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Invalid from date: %v\n", err)
+				return
+			}
+			toDate, err := time.Parse("2006-01-02", listTo)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Invalid to date: %v\n", err)
+				return
+			}
+			f, err := database.ListFixtures(fromDate, toDate, listTeams)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error listing fixtures: %v\n", err)
+				return
+			}
+			for _, fixture := range f {
+				fmt.Printf("%v %v %v\n", fixture.Date.Local().Format("02/01 15:04"), fixture.HomeTeam, fixture.AwayTeam)
+			}
 		},
 	}
 	addResult = &cobra.Command{
@@ -35,6 +61,18 @@ var (
 )
 
 func init() {
+	list.Flags().StringVarP(&listFrom, "from", "f", "", "from date")
+	list.Flags().StringVarP(&listTo, "to", "t", "", "to date")
+	list.Flags().StringArrayVarP(&listTeams, "teams", "m", []string{}, "filter by teams")
+	err := list.MarkFlagRequired("from")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error marking 'from' flag as required: %v\n", err)
+	}
+	err = list.MarkFlagRequired("to")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error marking 'to' flag as required: %v\n", err)
+	}
+
 	fixtures.AddCommand(add)
 	fixtures.AddCommand(list)
 	fixtures.AddCommand(addResult)

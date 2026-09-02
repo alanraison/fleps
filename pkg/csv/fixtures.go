@@ -9,54 +9,39 @@ import (
 	"github.com/alanraison/predictions/pkg/model"
 )
 
-func (c *Csv) readFixtures(r io.Reader) ([]model.Fixture, error) {
-	records, err := csv.NewReader(r).ReadAll()
+func (c *Csv) ReadFixtureRows(r io.Reader) ([]model.Fixture, error) {
+	cr := csv.NewReader(r)
+	record, err := cr.Read()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read CSV: %w", err)
+		return nil, fmt.Errorf("failed to read CSV record: %w", err)
 	}
-	// skip the header row
-	if len(records) > 0 {
-		records = records[1:]
-	}
-	fixtures := make([]model.Fixture, len(records))
-	for i, record := range records {
-		home := record[0]
-		away := record[1]
-		date := record[2]
-		h, err := c.teamRepo.FindTeamByKey(home)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find home team: %w", err)
-		}
-		if h == nil {
-			return nil, fmt.Errorf("home team not found: %s", home)
-		}
-		a, err := c.teamRepo.FindTeamByKey(away)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find away team: %w", err)
-		}
-		if a == nil {
-			return nil, fmt.Errorf("away team not found: %s", away)
-		}
-		d, err := time.Parse("2006-01-02T15:04", date)
+	fixtures := []model.Fixture{}
+	for {
+		date, err := time.Parse("2006-01-02 15:04", record[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse date: %w", err)
 		}
-		fixtures[i] = model.Fixture{
-			HomeTeam: *h,
-			AwayTeam: *a,
-			Date:     d,
+		homeTeam, err := c.teamRepo.FindTeamByKey(model.TeamKey(record[1]))
+		if err != nil {
+			return nil, fmt.Errorf("failed to find home team: %w", err)
+		}
+		awayTeam, err := c.teamRepo.FindTeamByKey(model.TeamKey(record[2]))
+		if err != nil {
+			return nil, fmt.Errorf("failed to find away team: %w", err)
+		}
+
+		fixtures = append(fixtures, model.Fixture{
+			Date:     date,
+			HomeTeam: homeTeam.Key,
+			AwayTeam: awayTeam.Key,
+		})
+		record, err = cr.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CSV record: %w", err)
 		}
 	}
 	return fixtures, nil
-}
-
-func (c *Csv) AddFixtures(r io.Reader) error {
-	fs, err := c.readFixtures(r)
-	if err != nil {
-		return fmt.Errorf("reading fixtures: %w", err)
-	}
-	if err := c.fixtureRepo.AddFixtures(fs); err != nil {
-		return fmt.Errorf("adding fixtures: %w", err)
-	}
-	return nil
 }

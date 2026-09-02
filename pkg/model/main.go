@@ -1,19 +1,33 @@
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
+var (
+	UnknownTeamErr    = errors.New("unknown team")
+	UnknownFixtureErr = errors.New("unknown fixture")
+)
+
+type TeamKey string
 type Team struct {
-	Key       string
+	Key       TeamKey
 	FullName  string
 	ShortName string
 }
 type Fixture struct {
-	HomeTeam Team
-	AwayTeam Team
+	HomeTeam TeamKey
+	AwayTeam TeamKey
 	Date     time.Time
 }
+type Result struct {
+	Fixture
+	HomeScore int
+	AwayScore int
+}
 type TeamRepository interface {
-	FindTeamByKey(key string) (*Team, error)
+	FindTeamByKey(key TeamKey) (*Team, error)
 }
 type FixtureRepository interface {
 	// AddFixtures stores the given fixtures in the repository.
@@ -21,6 +35,8 @@ type FixtureRepository interface {
 	// ListFixtures returns a list of fixtures between the given dates and for the given teams.
 	// If no teams are provided, all fixtures are returned.
 	ListFixtures(fromDate time.Time, toDate time.Time, teams []string) ([]Fixture, error)
+	AddResult(homeTeam, awayTeam TeamKey, date time.Time, homeGoals, awayGoals int) error
+	ListResults(fromDate time.Time, toDate time.Time, teams []string) ([]Result, error)
 }
 type Player struct {
 	Email string
@@ -33,10 +49,10 @@ type PlayerRepository interface {
 type Prediction struct {
 	Fixture
 	Player    string
-	HomeScore int
-	AwayScore int
+	HomeGoals int
+	AwayGoals int
 }
 type PredictionRepository interface {
-	AddPrediction(player, homeTeam, awayTeam string, date time.Time, homeScore, awayScore int) error
+	AddPrediction(player string, homeTeam, awayTeam TeamKey, date time.Time, homeGoals, awayGoals int) error
 	ListPredictions(from, to time.Time) ([]Prediction, error)
 }

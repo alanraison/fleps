@@ -2,8 +2,11 @@ package sql
 
 import (
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
+
+	"github.com/alanraison/predictions/pkg/model"
 )
 
 func setupDefaultPlayerData(tb testing.TB, db *sql.DB) {
@@ -76,9 +79,8 @@ func TestShouldAddPrediction(t *testing.T) {
 		t.Fatalf("ListFixtures returned error: %v", err)
 	}
 	f := fs[0]
-	t.Log("finished listing fixtures")
 
-	err = repo.AddPrediction("alan.raison@gmail.com", f.HomeTeam.Key, f.AwayTeam.Key, f.Date, 2, 1)
+	err = repo.AddPrediction("alan.raison@gmail.com", model.TeamKey(f.HomeTeam), model.TeamKey(f.AwayTeam), f.Date, 2, 1)
 	if err != nil {
 		t.Fatalf("AddPrediction returned error: %v", err)
 	}
@@ -91,19 +93,38 @@ func TestShouldAddPrediction(t *testing.T) {
 		t.Fatalf("expected 1 prediction, got %d", len(predictions))
 	}
 	prediction := predictions[0]
-	if prediction.HomeTeam.Key != f.HomeTeam.Key {
-		t.Fatalf("expected home team key '%s', got '%s'", f.HomeTeam.Key, prediction.HomeTeam.Key)
+	if prediction.HomeTeam != f.HomeTeam {
+		t.Fatalf("expected home team key '%s', got '%s'", f.HomeTeam, prediction.HomeTeam)
 	}
-	if prediction.AwayTeam.Key != f.AwayTeam.Key {
-		t.Fatalf("expected away team key '%s', got '%s'", f.AwayTeam.Key, prediction.AwayTeam.Key)
+	if prediction.AwayTeam != f.AwayTeam {
+		t.Fatalf("expected away team key '%s', got '%s'", f.AwayTeam, prediction.AwayTeam)
 	}
 	if prediction.Date != f.Date {
 		t.Fatalf("expected date '%v', got '%v'", f.Date, prediction.Date)
 	}
-	if prediction.HomeScore != 2 {
-		t.Fatalf("expected home score 2, got %d", prediction.HomeScore)
+	if prediction.HomeGoals != 2 {
+		t.Fatalf("expected home goals 2, got %d", prediction.HomeGoals)
 	}
-	if prediction.AwayScore != 1 {
-		t.Fatalf("expected away score 1, got %d", prediction.AwayScore)
+	if prediction.AwayGoals != 1 {
+		t.Fatalf("expected away goals 1, got %d", prediction.AwayGoals)
+	}
+}
+
+func TestPredicitionsRepositoryShouldFailForUnknownFixture(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultPlayerData(t, db)
+
+	repo := NewPredictionRepository(db)
+
+	matchDate := time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)
+	err := repo.AddPrediction("alan.raison@gmail.com", "LEE", "MUN", matchDate, 2, 1)
+	if err == nil {
+		t.Fatalf("expected error when adding prediction for unknown fixture, got nil")
+	}
+	if !errors.Is(err, model.UnknownFixtureErr) {
+		t.Fatalf("expected UnknownFixtureErr, got %v", err)
 	}
 }

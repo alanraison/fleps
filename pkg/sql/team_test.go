@@ -3,6 +3,8 @@ package sql
 import (
 	"database/sql"
 	"testing"
+
+	"github.com/alanraison/predictions/pkg/model"
 )
 
 func setupDefaultTeamData(tb testing.TB, db *sql.DB) {
@@ -15,7 +17,7 @@ func setupDefaultTeamData(tb testing.TB, db *sql.DB) {
 	if _, err := db.Exec(`
 		INSERT INTO teams (key, full_name, short_name, league) VALUES
 		('LEE', 'Leeds United', 'Leeds', 1),
-		('MNU', 'Manchester United', 'Man Utd', 1),
+		('MUN', 'Manchester United', 'Man Utd', 1),
 		('ARS', 'Arsenal', 'Arsenal', 1),
 		('CHE', 'Chelsea', 'Chelsea', 1);
 	`); err != nil {
@@ -36,7 +38,7 @@ func TestTeamRepositoryFindTeamByKey_FindsExistingKey(t *testing.T) {
 	if team == nil {
 		t.Fatal("expected team, got nil")
 	}
-	if got, want := team.Key, "LEE"; got != want {
+	if got, want := team.Key, model.TeamKey("LEE"); got != want {
 		t.Fatalf("Key = %q, want %q", got, want)
 	}
 	if got, want := team.FullName, "Leeds United"; got != want {

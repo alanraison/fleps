@@ -8,7 +8,7 @@ import (
 func TestReadPredictionRows(t *testing.T) {
 	csv := `match,player1,player2
 ARSBOU,2-0,1-1,
-MNUMNC,1-1,0-0,
+MUNMCI,1-1,0-0,
 `
 	rows, err := readPredictionRows(strings.NewReader(csv))
 	if err != nil {
@@ -28,8 +28,8 @@ MNUMNC,1-1,0-0,
 		t.Errorf("expected player2 '1-1', got '%s'", row.Predictions["player2"])
 	}
 	row = rows[1]
-	if row.Match != "MNUMNC" {
-		t.Errorf("expected match 'MNUMNC', got '%s'", row.Match)
+	if row.Match != "MUNMCI" {
+		t.Errorf("expected match 'MUNMCI', got '%s'", row.Match)
 	}
 	if row.Predictions["player1"] != "1-1" {
 		t.Errorf("expected player1 '1-1', got '%s'", row.Predictions["player1"])

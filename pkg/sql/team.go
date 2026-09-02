@@ -17,13 +17,13 @@ func NewTeamRepository(db *sql.DB) *teamRepository {
 	}
 }
 
-func (r *teamRepository) FindTeamByKey(key string) (team *model.Team, err error) {
+func (r *teamRepository) FindTeamByKey(key model.TeamKey) (team *model.Team, err error) {
 	team = &model.Team{}
 	err = r.db.
 		QueryRow("SELECT key, full_name, short_name FROM teams WHERE key = ?", key).
 		Scan(&team.Key, &team.FullName, &team.ShortName)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, fmt.Errorf("no team found with key %q: %w", key, model.UnknownTeamErr)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("finding team by key: %w", err)

@@ -55,15 +55,13 @@ func NewPredictionRepository(db *sql.DB) *predictionRepository {
 }
 
 // AddPrediction adds a prediction to the repository.
-func (r *predictionRepository) AddPrediction(player, homeTeam, awayTeam string, date time.Time, homeScore, awayScore int) error {
+func (r *predictionRepository) AddPrediction(player string, homeTeam, awayTeam model.TeamKey, date time.Time, homeScore, awayScore int) error {
 	var fixtureID int
-	fmt.Printf("looking up fixture for homeTeam=%s, awayTeam=%s, date=%v\n", homeTeam, awayTeam, date)
 	var dbDate string
 	err := r.db.QueryRow(`SELECT ? AS date_time`, date.Local()).Scan(&dbDate)
 	if err != nil {
 		return fmt.Errorf("querying date: %w", err)
 	}
-	fmt.Printf("queried date: %v\n", dbDate)
 	err = r.db.QueryRow(`
 		SELECT 
 			id 
@@ -75,6 +73,9 @@ func (r *predictionRepository) AddPrediction(player, homeTeam, awayTeam string, 
 		AND datetime(date_time) = datetime(?)`,
 		homeTeam, awayTeam, date.Local(),
 	).Scan(&fixtureID)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("unknown fixture: %w", model.UnknownFixtureErr)
+	}
 	if err != nil {
 		return fmt.Errorf("finding fixture id: %w", err)
 	}
@@ -99,18 +100,12 @@ func (r *predictionRepository) ListPredictions(from, to time.Time) ([]model.Pred
 		SELECT 
 			p.player, 
 			f.home_team,
-			h.full_name,
-			h.short_name,
 			f.away_team, 
-			a.full_name,
-			a.short_name,
 			f.date_time, 
 			p.home_goals, 
 			p.away_goals
 		FROM predictions p
 		JOIN fixtures f ON p.fixture_id = f.id
-		JOIN teams h ON f.home_team = h.key
-		JOIN teams a ON f.away_team = a.key
 		WHERE f.date_time BETWEEN ? AND ?`, from, to)
 	if err != nil {
 		return nil, err
@@ -120,19 +115,15 @@ func (r *predictionRepository) ListPredictions(from, to time.Time) ([]model.Pred
 	var predictions []model.Prediction
 	for rows.Next() {
 		var pred model.Prediction
-		var homeTeamKey, homeTeamFullName, homeTeamShortName string
-		var awayTeamKey, awayTeamFullName, awayTeamShortName string
+		var homeTeamKey string
+		var awayTeamKey string
 		if err := rows.Scan(
 			&pred.Player,
 			&homeTeamKey,
-			&homeTeamFullName,
-			&homeTeamShortName,
 			&awayTeamKey,
-			&awayTeamFullName,
-			&awayTeamShortName,
 			&pred.Date,
-			&pred.HomeScore,
-			&pred.AwayScore,
+			&pred.HomeGoals,
+			&pred.AwayGoals,
 		); err != nil {
 			return nil, err
 		}
@@ -142,16 +133,8 @@ func (r *predictionRepository) ListPredictions(from, to time.Time) ([]model.Pred
 		if awayTeamKey == "" {
 			return nil, fmt.Errorf("away team key is empty")
 		}
-		pred.HomeTeam = model.Team{
-			Key:       homeTeamKey,
-			FullName:  homeTeamFullName,
-			ShortName: homeTeamShortName,
-		}
-		pred.AwayTeam = model.Team{
-			Key:       awayTeamKey,
-			FullName:  awayTeamFullName,
-			ShortName: awayTeamShortName,
-		}
+		pred.HomeTeam = model.TeamKey(homeTeamKey)
+		pred.AwayTeam = model.TeamKey(awayTeamKey)
 		predictions = append(predictions, pred)
 	}
 	if err := rows.Err(); err != nil {

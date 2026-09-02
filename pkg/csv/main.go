@@ -9,7 +9,6 @@ import (
 
 type Csv struct {
 	teamRepo    model.TeamRepository
-	fixtureRepo model.FixtureRepository
 }
 
 type PredictionRow struct {
@@ -19,8 +18,7 @@ type PredictionRow struct {
 
 func NewCsv(teamRepo model.TeamRepository, fixtureRepo model.FixtureRepository) *Csv {
 	return &Csv{
-		teamRepo:    teamRepo,
-		fixtureRepo: fixtureRepo,
+		teamRepo: teamRepo,
 	}
 }
 

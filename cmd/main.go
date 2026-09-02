@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/alanraison/predictions/pkg/csv"
 	sqlpkg "github.com/alanraison/predictions/pkg/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
@@ -14,6 +15,7 @@ var (
 	dbPath   string
 	db       *sql.DB
 	database *sqlpkg.Database
+	c        *csv.Csv
 	rootCmd  = &cobra.Command{
 		Use:   "predictions",
 		Short: "Predictions is a CLI tool for making football predictions",
@@ -26,6 +28,7 @@ var (
 				return err
 			}
 			database = sqlpkg.NewDatabase(db)
+			c = csv.NewCsv(database, database)
 
 			return nil
 		},
