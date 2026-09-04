@@ -9,14 +9,23 @@ import (
 	"github.com/alanraison/predictions/pkg/model"
 )
 
-func (c *Csv) ReadFixtureRows(r io.Reader) ([]model.Fixture, error) {
+func (c *Csv) ReadFixtureRows(r io.Reader, roundID model.RoundID) ([]model.Fixture, error) {
 	cr := csv.NewReader(r)
-	record, err := cr.Read()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read CSV record: %w", err)
-	}
+	cr.FieldsPerRecord = -1
+
 	fixtures := []model.Fixture{}
 	for {
+		record, err := cr.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CSV record: %w", err)
+		}
+		if len(record) != 3 {
+			return nil, fmt.Errorf("expected 3 fields per fixture row, got %d", len(record))
+		}
+
 		date, err := time.Parse("2006-01-02 15:04", record[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse date: %w", err)
@@ -31,17 +40,11 @@ func (c *Csv) ReadFixtureRows(r io.Reader) ([]model.Fixture, error) {
 		}
 
 		fixtures = append(fixtures, model.Fixture{
+			RoundID:  roundID,
 			Date:     date,
 			HomeTeam: homeTeam.Key,
 			AwayTeam: awayTeam.Key,
 		})
-		record, err = cr.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to read CSV record: %w", err)
-		}
 	}
 	return fixtures, nil
 }

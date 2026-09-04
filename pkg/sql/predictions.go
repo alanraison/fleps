@@ -20,13 +20,17 @@ func NewPlayerRepository(db *sql.DB) *playerRepository {
 
 func (r *playerRepository) AddPlayer(email, name string) error {
 	_, err := r.db.Exec("INSERT INTO players (email, name) VALUES (?, ?)", email, name)
-	return err
+	if err != nil {
+		return fmt.Errorf("adding player %q: %w", email, err)
+	}
+
+	return nil
 }
 
 func (r *playerRepository) ListPlayers() ([]model.Player, error) {
 	rows, err := r.db.Query("SELECT email, name FROM players")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing players: %w", err)
 	}
 	defer rows.Close()
 
@@ -34,12 +38,12 @@ func (r *playerRepository) ListPlayers() ([]model.Player, error) {
 	for rows.Next() {
 		var player model.Player
 		if err := rows.Scan(&player.Email, &player.Name); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scanning player row: %w", err)
 		}
 		players = append(players, player)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("iterating player rows: %w", err)
 	}
 	return players, nil
 }
@@ -99,6 +103,7 @@ func (r *predictionRepository) ListPredictions(from, to time.Time) ([]model.Pred
 	rows, err := r.db.Query(`
 		SELECT 
 			p.player, 
+			f.round_id,
 			f.home_team,
 			f.away_team, 
 			f.date_time, 
@@ -108,25 +113,28 @@ func (r *predictionRepository) ListPredictions(from, to time.Time) ([]model.Pred
 		JOIN fixtures f ON p.fixture_id = f.id
 		WHERE f.date_time BETWEEN ? AND ?`, from, to)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing predictions: %w", err)
 	}
 	defer rows.Close()
 
 	var predictions []model.Prediction
 	for rows.Next() {
 		var pred model.Prediction
+		var roundID string
 		var homeTeamKey string
 		var awayTeamKey string
 		if err := rows.Scan(
 			&pred.Player,
+			&roundID,
 			&homeTeamKey,
 			&awayTeamKey,
 			&pred.Date,
 			&pred.HomeGoals,
 			&pred.AwayGoals,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scanning prediction row: %w", err)
 		}
+		pred.RoundID = model.RoundID(roundID)
 		if homeTeamKey == "" {
 			return nil, fmt.Errorf("home team key is empty")
 		}
@@ -138,7 +146,7 @@ func (r *predictionRepository) ListPredictions(from, to time.Time) ([]model.Pred
 		predictions = append(predictions, pred)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("iterating prediction rows: %w", err)
 	}
 	return predictions, nil
 }

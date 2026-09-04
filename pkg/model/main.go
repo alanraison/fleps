@@ -8,15 +8,19 @@ import (
 var (
 	UnknownTeamErr    = errors.New("unknown team")
 	UnknownFixtureErr = errors.New("unknown fixture")
+	UnknownRoundErr   = errors.New("unknown round")
 )
 
 type TeamKey string
+type RoundID string
+
 type Team struct {
 	Key       TeamKey
 	FullName  string
 	ShortName string
 }
 type Fixture struct {
+	RoundID  RoundID
 	HomeTeam TeamKey
 	AwayTeam TeamKey
 	Date     time.Time
@@ -35,7 +39,7 @@ type FixtureRepository interface {
 	// ListFixtures returns a list of fixtures between the given dates and for the given teams.
 	// If no teams are provided, all fixtures are returned.
 	ListFixtures(fromDate time.Time, toDate time.Time, teams []string) ([]Fixture, error)
-	AddResult(homeTeam, awayTeam TeamKey, date time.Time, homeGoals, awayGoals int) error
+	AddResult(roundID RoundID, homeTeam, awayTeam TeamKey, homeGoals, awayGoals int) error
 	ListResults(fromDate time.Time, toDate time.Time, teams []string) ([]Result, error)
 }
 type Player struct {

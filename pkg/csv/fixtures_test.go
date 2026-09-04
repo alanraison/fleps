@@ -44,12 +44,15 @@ func TestReadFixtureRows(t *testing.T) {
 	r := strings.NewReader(`2026-08-30 15:00,BHA,FUL
 2026-08-30 14:00,LEE,BRE`)
 	csv := NewCsv(&mockTeamRepository{}, nil)
-	fixtures, err := csv.ReadFixtureRows(r)
+	fixtures, err := csv.ReadFixtureRows(r, "R1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(fixtures) != 2 {
 		t.Fatalf("expected 2 fixtures, got %d", len(fixtures))
+	}
+	if fixtures[0].RoundID != "R1" {
+		t.Errorf("unexpected first fixture round: %+v", fixtures[0])
 	}
 	if fixtures[0].HomeTeam != "BHA" || fixtures[0].AwayTeam != "FUL" {
 		t.Errorf("unexpected first fixture: %+v", fixtures[0])
@@ -62,7 +65,7 @@ func TestReadFixtureRows(t *testing.T) {
 func TestReadFixtureRows_UnknownTeam(t *testing.T) {
 	r := strings.NewReader(`2026-08-30 15:00,XYZ,FUL`)
 	csv := NewCsv(&mockTeamRepository{}, nil)
-	_, err := csv.ReadFixtureRows(r)
+	_, err := csv.ReadFixtureRows(r, "R1")
 	if err == nil {
 		t.Fatalf("expected error for unknown team, got nil")
 	}
@@ -76,7 +79,7 @@ func TestReadFixtureRows_BadDate(t *testing.T) {
 2026-08-30 14:00,LEE,BRE
 2026-08-30 99:99,BHA,FUL`)
 	csv := NewCsv(&mockTeamRepository{}, nil)
-	_, err := csv.ReadFixtureRows(r)
+	_, err := csv.ReadFixtureRows(r, "R1")
 	if err == nil {
 		t.Fatalf("expected error for bad date, got nil")
 	}

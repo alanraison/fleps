@@ -2,6 +2,7 @@ package sql
 
 import (
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/alanraison/predictions/pkg/model"
@@ -57,8 +58,11 @@ func TestTeamRepositoryFindTeamByKey_ReturnsNotFoundForNonExistingKey(t *testing
 	setupDefaultTeamData(t, db)
 
 	team, err := repo.FindTeamByKey("XYZ")
-	if err != nil {
-		t.Fatalf("FindTeamByKey returned error: %v", err)
+	if err == nil {
+		t.Fatal("expected error for unknown team, got nil")
+	}
+	if !errors.Is(err, model.UnknownTeamErr) {
+		t.Fatalf("expected UnknownTeamErr, got %v", err)
 	}
 	if team != nil {
 		t.Fatal("expected team not to be found")

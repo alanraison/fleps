@@ -23,9 +23,8 @@ var (
 			if dbPath == "" {
 				return fmt.Errorf("db-path flag is required")
 			}
-			db, err := sql.Open("sqlite3", dbPath)
-			if err != nil {
-				return err
+			db, err := sqlpkg.OpenDatabase(dbPath); if err != nil {
+				return fmt.Errorf("opening database: %w", err)
 			}
 			database = sqlpkg.NewDatabase(db)
 			c = csv.NewCsv(database, database)

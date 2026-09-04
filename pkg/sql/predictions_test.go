@@ -65,6 +65,7 @@ func TestShouldAddPrediction(t *testing.T) {
 	defer teardown(t)
 
 	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
 	setupDefaultFixtureData(t, db)
 	setupDefaultPlayerData(t, db)
 
@@ -95,6 +96,9 @@ func TestShouldAddPrediction(t *testing.T) {
 	prediction := predictions[0]
 	if prediction.HomeTeam != f.HomeTeam {
 		t.Fatalf("expected home team key '%s', got '%s'", f.HomeTeam, prediction.HomeTeam)
+	}
+	if prediction.RoundID != f.RoundID {
+		t.Fatalf("expected round id '%s', got '%s'", f.RoundID, prediction.RoundID)
 	}
 	if prediction.AwayTeam != f.AwayTeam {
 		t.Fatalf("expected away team key '%s', got '%s'", f.AwayTeam, prediction.AwayTeam)
