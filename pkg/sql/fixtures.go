@@ -85,6 +85,25 @@ var (
 			results ON fixtures.id = results.fixture_id
 		WHERE 
 			date_time BETWEEN ? AND ? AND (home_team IN (%s) OR away_team IN (%s))`
+	listResultsQuery = `
+		SELECT
+			round_id,
+			home_team,
+			away_team,
+			date_time,
+			home_goals,
+			away_goals
+		FROM 
+			fixtures
+		JOIN
+		  teams h ON fixtures.home_team = h.key
+		JOIN
+		  teams a ON fixtures.away_team = a.key
+		JOIN
+			results ON fixtures.id = results.fixture_id
+		WHERE 
+			round_id = ?
+	`
 )
 
 func rollbackTransaction(tx *sql.Tx, cause error, context string) error {
@@ -142,6 +161,38 @@ func (r *fixtureRepository) ensureRoundExists(roundID model.RoundID) error {
 	return nil
 }
 
+func (r *fixtureRepository) getLatestRound() (model.RoundID, error) {
+	var latestRoundID model.RoundID
+	if err := r.db.QueryRow(`
+			SELECT
+				rounds.id
+			FROM
+				rounds 
+			LEFT JOIN
+				fixtures ON rounds.id = fixtures.round_id
+			LEFT JOIN
+				results ON fixtures.id = results.fixture_id
+			GROUP BY
+				rounds.id
+			HAVING
+				COUNT(results.fixture_id) = 0
+			ORDER BY
+			rounds.id ASC
+			LIMIT 1
+			`).Scan(&latestRoundID); err != nil {
+		return "", fmt.Errorf("reading latest round id: %w", err)
+	}
+
+	return latestRoundID, nil
+}
+
+func (r *fixtureRepository) AddRound(id model.RoundID, season model.SeasonID) error {
+	if _, err := r.db.Exec("INSERT INTO rounds (id, season_id) VALUES (?, ?)", id, season); err != nil {
+		return fmt.Errorf("inserting round record: %w", err)
+	}
+	return nil
+}
+
 func (r *fixtureRepository) AddFixtures(fixtures []model.Fixture) error {
 	for _, fixture := range fixtures {
 		if err := r.validateFixtureReferences(fixture); err != nil {
@@ -186,29 +237,29 @@ func (r *fixtureRepository) AddFixtures(fixtures []model.Fixture) error {
 	return nil
 }
 
-func (r *fixtureRepository) ListFixtures(fromDate time.Time, toDate time.Time, teams []string) ([]model.Fixture, error) {
+func (r *fixtureRepository) ListFixtures(roundId model.RoundID) ([]model.Fixture, error) {
 	var rows *sql.Rows
 	var err error
-	if len(teams) == 0 {
-		rows, err = r.db.Query(noTeamsQuery, fromDate, toDate)
+	if roundId == "" {
+		roundId, err = r.getLatestRound()
 		if err != nil {
-			return nil, fmt.Errorf("reading fixtures: %w", err)
-		}
-	} else {
-		args := make([]any, 2+len(teams)*2)
-		args[0] = fromDate
-		args[1] = toDate
-		for i, team := range teams {
-			args[2+i] = team
-			args[2+len(teams)+i] = team
-		}
-		rows, err = r.db.Query(fmtTeamsQuery(teams), args...)
-		if err != nil {
-			return nil, fmt.Errorf("reading fixtures: %w", err)
+			return nil, fmt.Errorf("getting latest round id: %w", err)
 		}
 	}
+	rows, err = r.db.Query(`
+		SELECT
+			round_id,
+			home_team,
+			away_team,
+			date_time
+		FROM fixtures
+		WHERE round_id = ?1
+		ORDER BY date_time ASC
+	`, roundId)
+	if err != nil {
+		return nil, fmt.Errorf("querying fixtures for round %q: %w", roundId, err)
+	}
 	defer rows.Close()
-
 	var fixtures []model.Fixture
 	for rows.Next() {
 		var roundID string
@@ -278,26 +329,12 @@ func (r *fixtureRepository) AddResult(
 	return nil
 }
 
-func (r *fixtureRepository) ListResults(fromDate time.Time, toDate time.Time, teams []string) ([]model.Result, error) {
+func (r *fixtureRepository) ListResults(round model.RoundID) ([]model.Result, error) {
 	var rows *sql.Rows
 	var err error
-	if len(teams) == 0 {
-		rows, err = r.db.Query(noTeamsResultsQuery, fromDate, toDate)
-		if err != nil {
-			return nil, fmt.Errorf("reading results: %w", err)
-		}
-	} else {
-		args := make([]any, 2+len(teams)*2)
-		args[0] = fromDate
-		args[1] = toDate
-		for i, team := range teams {
-			args[2+i] = team
-			args[2+len(teams)+i] = team
-		}
-		rows, err = r.db.Query(fmtTeamsResultsQuery(teams), args...)
-		if err != nil {
-			return nil, fmt.Errorf("reading results: %w", err)
-		}
+	rows, err = r.db.Query(listResultsQuery, round)
+	if err != nil {
+		return nil, fmt.Errorf("reading results: %w", err)
 	}
 	defer rows.Close()
 

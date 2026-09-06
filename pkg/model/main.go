@@ -12,6 +12,7 @@ var (
 )
 
 type TeamKey string
+type SeasonID string
 type RoundID string
 
 type Team struct {
@@ -34,13 +35,13 @@ type TeamRepository interface {
 	FindTeamByKey(key TeamKey) (*Team, error)
 }
 type FixtureRepository interface {
+	AddRound(RoundID, SeasonID) error
 	// AddFixtures stores the given fixtures in the repository.
 	AddFixtures(fixtures []Fixture) error
-	// ListFixtures returns a list of fixtures between the given dates and for the given teams.
-	// If no teams are provided, all fixtures are returned.
-	ListFixtures(fromDate time.Time, toDate time.Time, teams []string) ([]Fixture, error)
+	// ListFixtures returns a list of fixtures for a round, or the latest one if none supplied.
+	ListFixtures(RoundID) ([]Fixture, error)
 	AddResult(roundID RoundID, homeTeam, awayTeam TeamKey, homeGoals, awayGoals int) error
-	ListResults(fromDate time.Time, toDate time.Time, teams []string) ([]Result, error)
+	ListResults(roundID RoundID) ([]Result, error)
 }
 type Player struct {
 	Email string
@@ -58,5 +59,5 @@ type Prediction struct {
 }
 type PredictionRepository interface {
 	AddPrediction(player string, homeTeam, awayTeam TeamKey, date time.Time, homeGoals, awayGoals int) error
-	ListPredictions(from, to time.Time) ([]Prediction, error)
+	ListPredictions(roundID RoundID) ([]Prediction, error)
 }

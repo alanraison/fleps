@@ -21,13 +21,25 @@ func setupDefaultFixtureData(tb testing.TB, db *sql.DB) {
 	}
 }
 
-func setupDefaultRoundData(tb testing.TB, db *sql.DB) {
+func setupDefaultSeasonData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
 
 	if _, err := db.Exec(`
-		INSERT INTO rounds (id) VALUES
-		('R1'),
-		('R2');
+		INSERT INTO seasons (id) VALUES
+		('S1');
+	`); err != nil {
+		tb.Fatalf("failed to insert season test data: %v", err)
+	}
+}
+
+func setupDefaultRoundData(tb testing.TB, db *sql.DB) {
+	tb.Helper()
+
+	setupDefaultSeasonData(tb, db)
+	if _, err := db.Exec(`
+		INSERT INTO rounds (id, season_id) VALUES
+		('R1', 'S1'),
+		('R2', 'S1');
 	`); err != nil {
 		tb.Fatalf("failed to insert round test data: %v", err)
 	}
@@ -38,10 +50,7 @@ func TestFixtureRepositoryReturnsEmptyListWhenNoFixtures(t *testing.T) {
 	defer teardown(t)
 	repo := NewFixtureRepository(db)
 
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02", "2023-10-02")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{"LEE", "MUN"})
+	fixtures, err := repo.ListFixtures(model.RoundID("R1"))
 	if err != nil {
 		t.Fatalf("ListFixtures returned error: %v", err)
 	}
@@ -51,7 +60,7 @@ func TestFixtureRepositoryReturnsEmptyListWhenNoFixtures(t *testing.T) {
 	}
 }
 
-func TestFixtureRepositoryListFixturesWithHomeTeamFilter(t *testing.T) {
+func TestFixtureRepositoryListFixtures(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
 	repo := NewFixtureRepository(db)
@@ -60,204 +69,12 @@ func TestFixtureRepositoryListFixturesWithHomeTeamFilter(t *testing.T) {
 	setupDefaultRoundData(t, db)
 	setupDefaultFixtureData(t, db)
 
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02", "2023-10-02")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{"LEE"})
+	fixtures, err := repo.ListFixtures(model.RoundID("R1"))
 	if err != nil {
 		t.Fatalf("ListFixtures returned error: %v", err)
 	}
-
-	if len(fixtures) != 1 {
-		t.Fatalf("expected 1 fixture, got %d", len(fixtures))
-	}
-
-	fixture := fixtures[0]
-	if got, want := fixture.RoundID, model.RoundID("R1"); got != want {
-		t.Fatalf("RoundID = %q, want %q", got, want)
-	}
-	if got, want := fixture.HomeTeam, model.TeamKey("LEE"); got != want {
-		t.Fatalf("HomeTeam.Key = %q, want %q", got, want)
-	}
-	if got, want := fixture.AwayTeam, model.TeamKey("MUN"); got != want {
-		t.Fatalf("AwayTeam.Key = %q, want %q", got, want)
-	}
-	if got, want := fixture.Date.Format("2006-01-02"), "2023-10-01"; got != want {
-		t.Fatalf("Date = %q, want %q", got, want)
-	}
-}
-
-func TestFixtureRepositoryListFixturesWithAwayTeamFilter(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{"CHE"})
-	if err != nil {
-		t.Fatalf("ListFixtures returned error: %v", err)
-	}
-
-	if len(fixtures) != 1 {
-		t.Fatalf("expected 1 fixture, got %d", len(fixtures))
-	}
-
-	fixture := fixtures[0]
-	if got, want := fixture.RoundID, model.RoundID("R1"); got != want {
-		t.Fatalf("RoundID = %q, want %q", got, want)
-	}
-	if got, want := fixture.HomeTeam, model.TeamKey("ARS"); got != want {
-		t.Fatalf("HomeTeam.Key = %q, want %q", got, want)
-	}
-	if got, want := fixture.AwayTeam, model.TeamKey("CHE"); got != want {
-		t.Fatalf("AwayTeam.Key = %q, want %q", got, want)
-	}
-	if got, want := fixture.Date.Format("2006-01-02"), "2023-10-02"; got != want {
-		t.Fatalf("Date = %q, want %q", got, want)
-	}
-}
-
-func TestFixtureRepositoryListFixturesWithNoTeamFilter(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{})
-	if err != nil {
-		t.Fatalf("ListFixtures returned error: %v", err)
-	}
-
 	if len(fixtures) != 2 {
 		t.Fatalf("expected 2 fixtures, got %d", len(fixtures))
-	}
-}
-
-func TestFixtureRepositoryListFixturesWithHomeAndAwayTeamFilter(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{"LEE", "MUN"})
-	if err != nil {
-		t.Fatalf("ListFixtures returned error: %v", err)
-	}
-
-	if len(fixtures) != 1 {
-		t.Fatalf("expected 1 fixture, got %d", len(fixtures))
-	}
-
-	fixture := fixtures[0]
-	if got, want := fixture.RoundID, model.RoundID("R1"); got != want {
-		t.Fatalf("RoundID = %q, want %q", got, want)
-	}
-	if got, want := fixture.HomeTeam, model.TeamKey("LEE"); got != want {
-		t.Fatalf("HomeTeam.Key = %q, want %q", got, want)
-	}
-	if got, want := fixture.AwayTeam, model.TeamKey("MUN"); got != want {
-		t.Fatalf("AwayTeam.Key = %q, want %q", got, want)
-	}
-	if got, want := fixture.Date.Format("2006-01-02"), "2023-10-01"; got != want {
-		t.Fatalf("Date = %q, want %q", got, want)
-	}
-}
-
-func TestFixtureRepositoryListFixturesWithNoMatchingTeams(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{"XYZ"})
-	if err != nil {
-		t.Fatalf("ListFixtures returned error: %v", err)
-	}
-
-	if len(fixtures) != 0 {
-		t.Fatalf("expected 0 fixtures, got %d", len(fixtures))
-	}
-}
-
-func TestFixtureRepositoryListFixturesWithMatchedDateRange(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	from, _ := time.Parse("2006-01-02", "2023-10-02")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-03 23:59:59")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{})
-	if err != nil {
-		t.Fatalf("ListFixtures returned error: %v", err)
-	}
-
-	if len(fixtures) != 1 {
-		t.Fatalf("expected 1 fixture, got %d", len(fixtures))
-	}
-
-	fixture := fixtures[0]
-	if got, want := fixture.RoundID, model.RoundID("R1"); got != want {
-		t.Fatalf("RoundID = %q, want %q", got, want)
-	}
-	if got, want := fixture.HomeTeam, model.TeamKey("ARS"); got != want {
-		t.Fatalf("HomeTeam = %q, want %q", got, want)
-	}
-	if got, want := fixture.AwayTeam, model.TeamKey("CHE"); got != want {
-		t.Fatalf("AwayTeam = %q, want %q", got, want)
-	}
-	if got, want := fixture.Date.Format("2006-01-02"), "2023-10-02"; got != want {
-		t.Fatalf("Date = %q, want %q", got, want)
-	}
-}
-
-func TestFixtureRepositoryListFixturesWithNoMatchingDateRange(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	from, _ := time.Parse("2006-01-02", "2023-10-03")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-04 23:59:59")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{})
-	if err != nil {
-		t.Fatalf("ListFixtures returned error: %v", err)
-	}
-
-	if len(fixtures) != 0 {
-		t.Fatalf("expected 0 fixtures, got %d", len(fixtures))
 	}
 }
 
@@ -279,10 +96,7 @@ func TestFixtureRepositoryAddFixtures(t *testing.T) {
 		t.Fatalf("AddFixtures returned error: %v", err)
 	}
 
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
-
-	fixtures, err := repo.ListFixtures(from, to, []string{})
+	fixtures, err := repo.ListFixtures(model.RoundID("R1"))
 	if err != nil {
 		t.Fatalf("ListFixtures returned error: %v", err)
 	}
@@ -313,9 +127,7 @@ func TestFixtureRepositoryShouldFailToAddUnknownTeam(t *testing.T) {
 		t.Fatalf("expected error when adding fixture with unknown team, got nil")
 	}
 
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-02 23:59:59")
-	fixtures, err := repo.ListFixtures(from, to, []string{})
+	fixtures, err := repo.ListFixtures(model.RoundID("R1"))
 	if err != nil {
 		t.Fatalf("ListFixtures returned error: %v", err)
 	}
@@ -361,9 +173,7 @@ func TestFixtureRepositoryAddResultShouldAddResult(t *testing.T) {
 		t.Fatalf("AddResult returned error: %v", err)
 	}
 
-	from, _ := time.Parse("2006-01-02", "2023-10-01")
-	to, _ := time.Parse("2006-01-02 15:04:05", "2023-10-01 23:59:59")
-	results, err := repo.ListResults(from, to, []string{})
+	results, err := repo.ListResults(model.RoundID("R1"))
 	if err != nil {
 		t.Fatalf("ListResults returned error: %v", err)
 	}

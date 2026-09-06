@@ -1,5 +1,9 @@
-CREATE TABLE rounds (
+CREATE TABLE seasons (
   id TEXT PRIMARY KEY
+);
+CREATE TABLE rounds (
+  id TEXT PRIMARY KEY,
+  season_id TEXT REFERENCES seasons(id) NOT NULL
 );
 CREATE TABLE fixtures (
   id INTEGER PRIMARY KEY,

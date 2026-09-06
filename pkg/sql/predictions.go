@@ -99,7 +99,7 @@ func (r *predictionRepository) AddPrediction(player string, homeTeam, awayTeam m
 	return nil
 }
 
-func (r *predictionRepository) ListPredictions(from, to time.Time) ([]model.Prediction, error) {
+func (r *predictionRepository) ListPredictions(roundID model.RoundID) ([]model.Prediction, error) {
 	rows, err := r.db.Query(`
 		SELECT 
 			p.player, 
@@ -111,7 +111,7 @@ func (r *predictionRepository) ListPredictions(from, to time.Time) ([]model.Pred
 			p.away_goals
 		FROM predictions p
 		JOIN fixtures f ON p.fixture_id = f.id
-		WHERE f.date_time BETWEEN ? AND ?`, from, to)
+		WHERE f.round_id = ?`, roundID)
 	if err != nil {
 		return nil, fmt.Errorf("listing predictions: %w", err)
 	}

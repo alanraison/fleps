@@ -72,10 +72,7 @@ func TestShouldAddPrediction(t *testing.T) {
 	fr := NewFixtureRepository(db)
 	repo := NewPredictionRepository(db)
 
-	from, _ := time.Parse("2006-01-02 15:04", "2023-10-01 00:00")
-	to, _ := time.Parse("2006-01-02 15:04", "2023-10-02 23:59")
-
-	fs, err := fr.ListFixtures(from, to, []string{"LEE"})
+	fs, err := fr.ListFixtures(model.RoundID("R1"))
 	if err != nil {
 		t.Fatalf("ListFixtures returned error: %v", err)
 	}
@@ -86,7 +83,7 @@ func TestShouldAddPrediction(t *testing.T) {
 		t.Fatalf("AddPrediction returned error: %v", err)
 	}
 
-	predictions, err := repo.ListPredictions(from, to)
+	predictions, err := repo.ListPredictions(model.RoundID("R1"))
 	if err != nil {
 		t.Fatalf("ListPredictions returned error: %v", err)
 	}
