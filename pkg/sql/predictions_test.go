@@ -100,7 +100,7 @@ func TestShouldAddPrediction(t *testing.T) {
 	if prediction.AwayTeam != f.AwayTeam {
 		t.Fatalf("expected away team key '%s', got '%s'", f.AwayTeam, prediction.AwayTeam)
 	}
-	if prediction.Date != f.Date {
+	if !prediction.Date.Equal(f.Date) {
 		t.Fatalf("expected date '%v', got '%v'", f.Date, prediction.Date)
 	}
 	if prediction.HomeGoals != 2 {

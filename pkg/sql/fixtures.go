@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/alanraison/predictions/pkg/model"
@@ -21,20 +20,6 @@ func NewFixtureRepository(db *sql.DB) *fixtureRepository {
 }
 
 var (
-	noTeamsQuery = `
-		SELECT 
-			round_id,
-			home_team,
-			away_team,
-			date_time
-		FROM 
-			fixtures
-		JOIN
-		  teams h ON fixtures.home_team = h.key
-		JOIN
-		  teams a ON fixtures.away_team = a.key
-		WHERE 
-			date_time BETWEEN ? AND ?`
 	teamsQuery = `
 		SELECT 
 			round_id,
@@ -49,24 +34,6 @@ var (
 		  teams a ON fixtures.away_team = a.key
 		WHERE 
 			date_time BETWEEN ? AND ? AND (home_team IN (%s) OR away_team IN (%s))`
-	noTeamsResultsQuery = `
-		SELECT
-			round_id,
-			home_team,
-			away_team,
-			date_time,
-			home_goals,
-			away_goals
-		FROM 
-			fixtures
-		JOIN
-		  teams h ON fixtures.home_team = h.key
-		JOIN
-		  teams a ON fixtures.away_team = a.key
-		JOIN
-			results ON fixtures.id = results.fixture_id
-		WHERE 
-			date_time BETWEEN ? AND ?`
 	teamsResultsQuery = `
 		SELECT
 			round_id,
@@ -112,24 +79,6 @@ func rollbackTransaction(tx *sql.Tx, cause error, context string) error {
 	}
 
 	return cause
-}
-
-func fmtTeamsQuery(teams []string) string {
-	n := len(teams)
-	if n <= 0 {
-		return ""
-	}
-	ph := strings.Repeat("?,", n-1) + "?"
-	return fmt.Sprintf(teamsQuery, ph, ph)
-}
-
-func fmtTeamsResultsQuery(teams []string) string {
-	n := len(teams)
-	if n <= 0 {
-		return ""
-	}
-	ph := strings.Repeat("?,", n-1) + "?"
-	return fmt.Sprintf(teamsResultsQuery, ph, ph)
 }
 
 func (r *fixtureRepository) validateFixtureReferences(fixture model.Fixture) error {
@@ -210,14 +159,14 @@ func (r *fixtureRepository) AddFixtures(fixtures []model.Fixture) error {
 			home_team,
 			away_team,
 			date_time
-		) VALUES (?1, ?2, ?3, ?4)`)
+		) VALUES (?, ?, ?, ?)`)
 	if err != nil {
 		return rollbackTransaction(tx, fmt.Errorf("preparing add fixtures statement: %w", err), "rolling back add fixtures transaction")
 	}
 	defer stmt.Close()
 
 	for _, fixture := range fixtures {
-		res, err := stmt.Exec(fixture.RoundID, fixture.HomeTeam, fixture.AwayTeam, fixture.Date)
+		res, err := stmt.Exec(fixture.RoundID, fixture.HomeTeam, fixture.AwayTeam, fixture.Date.UTC())
 		if err != nil {
 			return rollbackTransaction(tx, fmt.Errorf("executing add fixture statement for round %q and teams %s vs %s: %w", fixture.RoundID, fixture.HomeTeam, fixture.AwayTeam, err), "rolling back add fixtures transaction")
 		}
@@ -273,7 +222,7 @@ func (r *fixtureRepository) ListFixtures(roundId model.RoundID) ([]model.Fixture
 			RoundID:  model.RoundID(roundID),
 			HomeTeam: model.TeamKey(homeTeamKey),
 			AwayTeam: model.TeamKey(awayTeamKey),
-			Date:     dateTime,
+			Date:     dateTime.Local(),
 		})
 	}
 	if err := rows.Err(); err != nil {

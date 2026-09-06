@@ -26,7 +26,7 @@ func (c *Csv) ReadFixtureRows(r io.Reader, roundID model.RoundID) ([]model.Fixtu
 			return nil, fmt.Errorf("expected 3 fields per fixture row, got %d", len(record))
 		}
 
-		date, err := time.Parse("2006-01-02 15:04", record[0])
+		date, err := time.ParseInLocation("2006-01-02 15:04", record[0], time.Local)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse date: %w", err)
 		}

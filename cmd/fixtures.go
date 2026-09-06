@@ -111,6 +111,7 @@ func init() {
 	createRound.Flags().StringVarP(&seasonID, "season", "s", "", "season in which the round belongs")
 	add.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all fixtures in the CSV")
 	addResult.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all results in the CSV")
+	list.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for listing fixtures")
 
 	fixtures.AddCommand(createRound)
 	fixtures.AddCommand(add)

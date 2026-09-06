@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alanraison/predictions/pkg/model"
 )
@@ -59,6 +60,9 @@ func TestReadFixtureRows(t *testing.T) {
 	}
 	if fixtures[1].HomeTeam != "LEE" || fixtures[1].AwayTeam != "BRE" {
 		t.Errorf("unexpected second fixture: %+v", fixtures[1])
+	}
+	if fixtures[0].Date.Location() != time.Local {
+		t.Errorf("expected fixture date to use local timezone, got %s", fixtures[0].Date.Location())
 	}
 }
 
