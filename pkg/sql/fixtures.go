@@ -161,7 +161,7 @@ func (r *fixtureRepository) ensureRoundExists(roundID model.RoundID) error {
 	return nil
 }
 
-func (r *fixtureRepository) getLatestRound() (model.RoundID, error) {
+func (r *fixtureRepository) GetLatestRound() (model.RoundID, error) {
 	var latestRoundID model.RoundID
 	if err := r.db.QueryRow(`
 			SELECT
@@ -241,7 +241,7 @@ func (r *fixtureRepository) ListFixtures(roundId model.RoundID) ([]model.Fixture
 	var rows *sql.Rows
 	var err error
 	if roundId == "" {
-		roundId, err = r.getLatestRound()
+		roundId, err = r.GetLatestRound()
 		if err != nil {
 			return nil, fmt.Errorf("getting latest round id: %w", err)
 		}

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/alanraison/predictions/pkg/model"
 	"github.com/spf13/cobra"
@@ -32,13 +31,22 @@ var (
 		Use:   "add",
 		Short: "Add fixtures from a CSV file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fs, err := c.ReadFixtureRows(cmd.InOrStdin(), model.RoundID(roundID))
+			round := model.RoundID(roundID)
+			if roundID == "" {
+				var err error
+				round, err = database.GetLatestRound()
+				if err != nil {
+					return fmt.Errorf("getting latest round id: %w", err)
+				}
+				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
+			}
+			fs, err := c.ReadFixtureRows(cmd.InOrStdin(), round)
 			if err != nil {
-				return fmt.Errorf("reading fixture rows for round %q: %w", roundID, err)
+				return fmt.Errorf("reading fixture rows for round %q: %w", round, err)
 			}
 
 			if err := database.AddFixtures(fs); err != nil {
-				return fmt.Errorf("adding fixtures for round %q: %w", roundID, err)
+				return fmt.Errorf("adding fixtures for round %q: %w", round, err)
 			}
 
 			return nil
@@ -48,8 +56,16 @@ var (
 		Use:   "list",
 		Short: "List fixtures for a round",
 		RunE: func(cmd *cobra.Command, args []string) error {
-
-			f, err := database.ListFixtures(model.RoundID(roundID))
+			var round = model.RoundID(roundID)
+			if roundID == "" {
+				var err error
+				round, err = database.GetLatestRound()
+				if err != nil {
+					return fmt.Errorf("getting latest round id: %w", err)
+				}
+				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
+			}
+			f, err := database.ListFixtures(round)
 			if err != nil {
 				return fmt.Errorf("listing fixtures: %w", err)
 			}
@@ -62,14 +78,22 @@ var (
 			return nil
 		},
 	}
-	addResultRoundID string
 	addResult        = &cobra.Command{
 		Use:   "add-result",
 		Short: "Add a result for a fixture",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			results, err := c.ReadResultRows(cmd.InOrStdin(), model.RoundID(addResultRoundID))
+			var round = model.RoundID(roundID)
+			if roundID == "" {
+				var err error
+				round, err = database.GetLatestRound()
+				if err != nil {
+					return fmt.Errorf("getting latest round id: %w", err)
+				}
+				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
+			}
+			results, err := c.ReadResultRows(cmd.InOrStdin(), round)
 			if err != nil {
-				return fmt.Errorf("reading result rows for round %q: %w", addResultRoundID, err)
+				return fmt.Errorf("reading result rows for round %q: %w", round, err)
 			}
 
 			for _, result := range results {
@@ -86,16 +110,7 @@ var (
 func init() {
 	createRound.Flags().StringVarP(&seasonID, "season", "s", "", "season in which the round belongs")
 	add.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all fixtures in the CSV")
-	err := add.MarkFlagRequired("round")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error marking 'round' flag as required on fixtures add: %v\n", err)
-	}
-
-	addResult.Flags().StringVarP(&addResultRoundID, "round", "r", "", "round identifier for all results in the CSV")
-	err = addResult.MarkFlagRequired("round")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error marking 'round' flag as required on fixtures add-result: %v\n", err)
-	}
+	addResult.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all results in the CSV")
 
 	fixtures.AddCommand(createRound)
 	fixtures.AddCommand(add)
