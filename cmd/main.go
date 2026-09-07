@@ -23,7 +23,8 @@ var (
 			if dbPath == "" {
 				return fmt.Errorf("db-path flag is required")
 			}
-			db, err := sqlpkg.OpenDatabase(dbPath); if err != nil {
+			db, err := sqlpkg.OpenDatabase(dbPath)
+			if err != nil {
 				return fmt.Errorf("opening database: %w", err)
 			}
 			database = sqlpkg.NewDatabase(db)

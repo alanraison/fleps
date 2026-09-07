@@ -78,9 +78,10 @@ var (
 			return nil
 		},
 	}
-	addResult        = &cobra.Command{
-		Use:   "add-result",
-		Short: "Add a result for a fixture",
+	addResult = &cobra.Command{
+		Use:     "add-results",
+		Aliases: []string{"add-result"},
+		Short:   "Add a result for a fixture",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var round = model.RoundID(roundID)
 			if roundID == "" {
