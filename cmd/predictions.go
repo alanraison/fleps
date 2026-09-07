@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	predictions = &cobra.Command{
+	predictionsCmd = &cobra.Command{
 		Use:   "predictions",
 		Short: "Manage predictions",
 	}
@@ -27,6 +28,7 @@ var (
 )
 
 func init() {
-	predictions.AddCommand(addPrediction)
-	predictions.AddCommand(listPredictions)
+	rootCmd.AddCommand(predictionsCmd)
+	predictionsCmd.AddCommand(addPrediction)
+	predictionsCmd.AddCommand(listPredictions)
 }

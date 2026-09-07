@@ -281,6 +281,12 @@ func (r *fixtureRepository) AddResult(
 func (r *fixtureRepository) ListResults(round model.RoundID) ([]model.Result, error) {
 	var rows *sql.Rows
 	var err error
+	if err = r.db.QueryRow("SELECT true FROM rounds where id = ?", round).Scan(&[]byte{}); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("unknown round: %w", model.UnknownRoundErr)
+		}
+		return nil, fmt.Errorf("checking round existence: %w", err)
+	}
 	rows, err = r.db.Query(listResultsQuery, round)
 	if err != nil {
 		return nil, fmt.Errorf("reading results: %w", err)

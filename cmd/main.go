@@ -38,7 +38,6 @@ var (
 					return fmt.Errorf("closing database: %w", err)
 				}
 			}
-
 			return nil
 		},
 	}
@@ -46,9 +45,6 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&dbPath, "db-path", "football.db", "Path to the SQLite database file")
-	rootCmd.AddCommand(fixtures)
-	rootCmd.AddCommand(players)
-	rootCmd.AddCommand(predictions)
 }
 
 func Execute() {

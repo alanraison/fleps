@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	roundID  string
-	fixtures = &cobra.Command{
+	roundID     string
+	fixturesCmd = &cobra.Command{
 		Use:   "fixtures",
 		Short: "Manage fixtures",
 	}
 	seasonID    string
-	createRound = &cobra.Command{
+	createRoundCmd = &cobra.Command{
 		Use:   "create-round",
 		Short: "Creates a Round",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -27,7 +27,7 @@ var (
 			return nil
 		},
 	}
-	add = &cobra.Command{
+	addFixturesCmd = &cobra.Command{
 		Use:   "add",
 		Short: "Add fixtures from a CSV file",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,7 +52,7 @@ var (
 			return nil
 		},
 	}
-	list = &cobra.Command{
+	listFixturesCmd = &cobra.Command{
 		Use:   "list",
 		Short: "List fixtures for a round",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -78,44 +78,15 @@ var (
 			return nil
 		},
 	}
-	addResult = &cobra.Command{
-		Use:     "add-results",
-		Aliases: []string{"add-result"},
-		Short:   "Add a result for a fixture",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var round = model.RoundID(roundID)
-			if roundID == "" {
-				var err error
-				round, err = database.GetLatestRound()
-				if err != nil {
-					return fmt.Errorf("getting latest round id: %w", err)
-				}
-				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
-			}
-			results, err := c.ReadResultRows(cmd.InOrStdin(), round)
-			if err != nil {
-				return fmt.Errorf("reading result rows for round %q: %w", round, err)
-			}
-
-			for _, result := range results {
-				if err := database.AddResult(result.RoundID, result.HomeTeam, result.AwayTeam, result.HomeScore, result.AwayScore); err != nil {
-					return fmt.Errorf("adding result for round %q and fixture %s vs %s: %w", result.RoundID, result.HomeTeam, result.AwayTeam, err)
-				}
-			}
-
-			return nil
-		},
-	}
 )
 
 func init() {
-	createRound.Flags().StringVarP(&seasonID, "season", "s", "", "season in which the round belongs")
-	add.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all fixtures in the CSV")
-	addResult.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all results in the CSV")
-	list.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for listing fixtures")
+	createRoundCmd.Flags().StringVarP(&seasonID, "season", "s", "", "season in which the round belongs")
+	addFixturesCmd.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all fixtures in the CSV")
+	listFixturesCmd.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for listing fixtures")
 
-	fixtures.AddCommand(createRound)
-	fixtures.AddCommand(add)
-	fixtures.AddCommand(list)
-	fixtures.AddCommand(addResult)
+	rootCmd.AddCommand(fixturesCmd)
+	fixturesCmd.AddCommand(createRoundCmd)
+	fixturesCmd.AddCommand(addFixturesCmd)
+	fixturesCmd.AddCommand(listFixturesCmd)
 }

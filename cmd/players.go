@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	players = &cobra.Command{
+	playersCmd = &cobra.Command{
 		Use:   "players",
 		Short: "Manage players",
 	}
@@ -27,6 +28,7 @@ var (
 )
 
 func init() {
-	players.AddCommand(addPlayer)
-	players.AddCommand(listPlayers)
+	rootCmd.AddCommand(playersCmd)
+	playersCmd.AddCommand(addPlayer)
+	playersCmd.AddCommand(listPlayers)
 }
