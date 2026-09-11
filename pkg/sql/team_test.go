@@ -68,3 +68,38 @@ func TestTeamRepositoryFindTeamByKey_ReturnsNotFoundForNonExistingKey(t *testing
 		t.Fatal("expected team not to be found")
 	}
 }
+
+func TestTeamRepositoryAddTeam(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+	repo := NewTeamRepository(db)
+
+	setupDefaultTeamData(t, db)
+
+	newTeam := &model.Team{
+		Key:       "TOT",
+		FullName:  "Tottenham Hotspur",
+		ShortName: "Spurs",
+		League:    1,
+	}
+	if err := repo.AddTeam(newTeam); err != nil {
+		t.Fatalf("AddTeam returned error: %v", err)
+	}
+
+	team, err := repo.FindTeamByKey("TOT")
+	if err != nil {
+		t.Fatalf("FindTeamByKey returned error: %v", err)
+	}
+	if team == nil {
+		t.Fatal("expected team, got nil")
+	}
+	if got, want := team.Key, model.TeamKey("TOT"); got != want {
+		t.Fatalf("Key = %q, want %q", got, want)
+	}
+	if got, want := team.FullName, "Tottenham Hotspur"; got != want {
+		t.Fatalf("FullName = %q, want %q", got, want)
+	}
+	if got, want := team.ShortName, "Spurs"; got != want {
+		t.Fatalf("ShortName = %q, want %q", got, want)
+	}
+}

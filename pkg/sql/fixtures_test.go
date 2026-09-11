@@ -88,8 +88,8 @@ func TestFixtureRepositoryAddFixtures(t *testing.T) {
 	setupDefaultRoundData(t, db)
 
 	fixturesToAdd := []model.Fixture{
-		{RoundID: model.RoundID("R1"), HomeTeam: model.TeamKey("LEE"), AwayTeam: model.TeamKey("MUN"), Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
-		{RoundID: model.RoundID("R1"), HomeTeam: model.TeamKey("ARS"), AwayTeam: model.TeamKey("CHE"), Date: time.Date(2023, 10, 2, 16, 0, 0, 0, time.UTC)},
+		{FixtureKey: model.FixtureKey{RoundID: model.RoundID("R1"), HomeTeam: model.TeamKey("LEE"), AwayTeam: model.TeamKey("MUN")}, Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
+		{FixtureKey: model.FixtureKey{RoundID: model.RoundID("R1"), HomeTeam: model.TeamKey("ARS"), AwayTeam: model.TeamKey("CHE")}, Date: time.Date(2023, 10, 2, 16, 0, 0, 0, time.UTC)},
 	}
 
 	err := repo.AddFixtures(fixturesToAdd)
@@ -119,8 +119,8 @@ func TestFixtureRepositoryShouldFailToAddUnknownTeam(t *testing.T) {
 	setupDefaultRoundData(t, db)
 
 	fixturesToAdd := []model.Fixture{
-		{RoundID: model.RoundID("R1"), HomeTeam: model.TeamKey("LEE"), AwayTeam: model.TeamKey("MUN"), Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
-		{RoundID: model.RoundID("R1"), HomeTeam: model.TeamKey("BBB"), AwayTeam: model.TeamKey("CCC"), Date: time.Date(2023, 10, 2, 16, 0, 0, 0, time.UTC)},
+		{FixtureKey: model.FixtureKey{RoundID: model.RoundID("R1"), HomeTeam: model.TeamKey("LEE"), AwayTeam: model.TeamKey("MUN")}, Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
+		{FixtureKey: model.FixtureKey{RoundID: model.RoundID("R1"), HomeTeam: model.TeamKey("BBB"), AwayTeam: model.TeamKey("CCC")}, Date: time.Date(2023, 10, 2, 16, 0, 0, 0, time.UTC)},
 	}
 
 	err := repo.AddFixtures(fixturesToAdd)
@@ -146,140 +146,12 @@ func TestFixtureRepositoryShouldFailToAddUnknownRound(t *testing.T) {
 	setupDefaultRoundData(t, db)
 
 	fixturesToAdd := []model.Fixture{
-		{RoundID: model.RoundID("R9"), HomeTeam: model.TeamKey("LEE"), AwayTeam: model.TeamKey("MUN"), Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
+		{FixtureKey: model.FixtureKey{RoundID: model.RoundID("R9"), HomeTeam: model.TeamKey("LEE"), AwayTeam: model.TeamKey("MUN")}, Date: time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)},
 	}
 
 	err := repo.AddFixtures(fixturesToAdd)
 	if err == nil {
 		t.Fatal("expected error when adding fixture with unknown round, got nil")
-	}
-	if !errors.Is(err, model.UnknownRoundErr) {
-		t.Fatalf("expected UnknownRoundErr, got %v", err)
-	}
-}
-
-func TestFixtureRepositoryAddResultShouldAddResult(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	matchDate := time.Date(2023, 10, 1, 15, 0, 0, 0, time.UTC)
-
-	err := repo.AddResult("R1", "LEE", "MUN", 2, 1)
-	if err != nil {
-		t.Fatalf("AddResult returned error: %v", err)
-	}
-
-	results, err := repo.ListResults(model.RoundID("R1"))
-	if err != nil {
-		t.Fatalf("ListResults returned error: %v", err)
-	}
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
-	}
-	fixture := results[0]
-	if fixture.RoundID != model.RoundID("R1") {
-		t.Fatalf("unexpected fixture round: got %s", fixture.RoundID)
-	}
-	if fixture.HomeTeam != model.TeamKey("LEE") || fixture.AwayTeam != model.TeamKey("MUN") {
-		t.Fatalf("unexpected fixture teams: got %s vs %s", fixture.HomeTeam, fixture.AwayTeam)
-	}
-	if fixture.Date != matchDate {
-		t.Fatalf("unexpected fixture date: got %v", fixture.Date)
-	}
-	if fixture.HomeScore != 2 || fixture.AwayScore != 1 {
-		t.Fatalf("unexpected fixture score: got %d - %d", fixture.HomeScore, fixture.AwayScore)
-	}
-}
-
-func TestFixtureRepositoryAddResultShouldFailForUnknownFixture(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-
-	err := repo.AddResult("R1", "LEE", "MUN", 2, 1)
-	if err == nil {
-		t.Fatalf("expected error when adding result for unknown fixture, got nil")
-	}
-	if !errors.Is(err, model.UnknownFixtureErr) {
-		t.Fatalf("expected UnknownFixtureErr, got %v", err)
-	}
-}
-
-func TestFixtureRepositoryListResultsShouldReturnEmptyWhenNoResultsExist(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	results, err := repo.ListResults(model.RoundID("R1"))
-	if err != nil {
-		t.Fatalf("ListResults returned error: %v", err)
-	}
-	if len(results) != 0 {
-		t.Fatalf("expected 0 results, got %d", len(results))
-	}
-}
-
-func TestFixtureRepositoryListResultsShouldReturnResultsForGivenRound(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	err := repo.AddResult("R1", "LEE", "MUN", 2, 1)
-	if err != nil {
-		t.Fatalf("AddResult returned error: %v", err)
-	}
-	err = repo.AddResult("R2", "LEE", "MUN", 3, 2)
-	if err != nil {
-		t.Fatalf("AddResult returned error: %v", err)
-	}
-
-	results, err := repo.ListResults(model.RoundID("R1"))
-	if err != nil {
-		t.Fatalf("ListResults returned error: %v", err)
-	}
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
-	}
-	fixture := results[0]
-	if fixture.RoundID != model.RoundID("R1") {
-		t.Fatalf("unexpected fixture round: got %s", fixture.RoundID)
-	}
-	if fixture.HomeTeam != model.TeamKey("LEE") || fixture.AwayTeam != model.TeamKey("MUN") {
-		t.Fatalf("unexpected fixture teams: got %s vs %s", fixture.HomeTeam, fixture.AwayTeam)
-	}
-	if fixture.HomeScore != 2 || fixture.AwayScore != 1 {
-		t.Fatalf("unexpected fixture score: got %d - %d", fixture.HomeScore, fixture.AwayScore)
-	}
-}
-
-func TestFixtureRepositoryListResultsShouldReturnErrorForUnknownRound(t *testing.T) {
-	teardown, db := setupTestDB(t)
-	defer teardown(t)
-	repo := NewFixtureRepository(db)
-
-	setupDefaultTeamData(t, db)
-	setupDefaultRoundData(t, db)
-	setupDefaultFixtureData(t, db)
-
-	_, err := repo.ListResults(model.RoundID("R999"))
-	if err == nil {
-		t.Fatalf("expected error when listing results for unknown round, got nil")
 	}
 	if !errors.Is(err, model.UnknownRoundErr) {
 		t.Fatalf("expected UnknownRoundErr, got %v", err)

@@ -6,8 +6,11 @@ import (
 )
 
 type Database struct {
-	*teamRepository
 	*fixtureRepository
+	*playerRepository
+	*predictionRepository
+	*resultRepository
+	*teamRepository
 }
 
 func OpenDatabase(dbPath string) (*sql.DB, error) {
@@ -24,7 +27,10 @@ func OpenDatabase(dbPath string) (*sql.DB, error) {
 
 func NewDatabase(db *sql.DB) *Database {
 	return &Database{
-		teamRepository:    &teamRepository{db: db},
-		fixtureRepository: &fixtureRepository{db: db},
+		fixtureRepository:    &fixtureRepository{db: db},
+		playerRepository:     &playerRepository{db: db},
+		predictionRepository: &predictionRepository{db: db},
+		resultRepository:     &resultRepository{db: db},
+		teamRepository:       &teamRepository{db: db},
 	}
 }

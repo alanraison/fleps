@@ -17,11 +17,28 @@ func NewTeamRepository(db *sql.DB) *teamRepository {
 	}
 }
 
+func (r *teamRepository) AddTeam(newTeam *model.Team) error {
+	_, err := r.db.Exec(
+		`INSERT INTO 
+			teams (
+				key, 
+				full_name, 
+				short_name, 
+				league
+			) VALUES (?, ?, ?, ?)`,
+		newTeam.Key, newTeam.FullName, newTeam.ShortName, newTeam.League,
+	)
+	if err != nil {
+		return fmt.Errorf("adding team: %w", err)
+	}
+	return nil
+}
+
 func (r *teamRepository) FindTeamByKey(key model.TeamKey) (team *model.Team, err error) {
 	team = &model.Team{}
 	err = r.db.
-		QueryRow("SELECT key, full_name, short_name FROM teams WHERE key = ?", key).
-		Scan(&team.Key, &team.FullName, &team.ShortName)
+		QueryRow("SELECT key, full_name, short_name, league FROM teams WHERE key = ?", key).
+		Scan(&team.Key, &team.FullName, &team.ShortName, &team.League)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("no team found with key %q: %w", key, model.UnknownTeamErr)
 	}

@@ -2,39 +2,49 @@ package csv
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
+	"strconv"
+
+	"github.com/alanraison/predictions/pkg/model"
 )
 
-func readPredictionRows(r io.Reader) ([]PredictionRow, error) {
+func (c *Csv) ReadPredictionRows(r io.Reader, roundID model.RoundID, player string) (model.GamePredictions, error) {
 	reader := csv.NewReader(r)
-	reader.FieldsPerRecord = -1
+	reader.FieldsPerRecord = 4
 
-	records, err := reader.ReadAll()
-	if err != nil {
-		return nil, err
-	}
-	if len(records) == 0 {
-		return nil, nil
-	}
-
-	headers := records[0]
-	rows := make([]PredictionRow, 0, len(records)-1)
-
-	for _, record := range records[1:] {
-		row := PredictionRow{Predictions: make(map[string]string)}
-		for i, value := range record {
-			if i >= len(headers) {
-				break
-			}
-			header := headers[i]
-			if header == "match" {
-				row.Match = value
-				continue
-			}
-			row.Predictions[header] = value
+	predictions := make(model.GamePredictions)
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
 		}
-		rows = append(rows, row)
+		if err != nil {
+			return nil, fmt.Errorf("reading CSV record: %w", err)
+		}
+		homeTeam, err := c.teamRepo.FindTeamByKey(model.TeamKey(record[0]))
+		if err != nil {
+			return nil, fmt.Errorf("failed to find home team: %w", err)
+		}
+		awayTeam, err := c.teamRepo.FindTeamByKey(model.TeamKey(record[1]))
+		if err != nil {
+			return nil, fmt.Errorf("failed to find away team: %w", err)
+		}
+		homeGoals, err := strconv.Atoi(record[2])
+		if err != nil {
+			return nil, fmt.Errorf("parsing home goals: %w", err)
+		}
+		awayGoals, err := strconv.Atoi(record[3])
+		if err != nil {
+			return nil, fmt.Errorf("parsing away goals: %w", err)
+		}
+		predictions[model.Game{
+			HomeTeam: homeTeam.Key,
+			AwayTeam: awayTeam.Key,
+		}] = model.Prediction{
+			HomeGoals: homeGoals,
+			AwayGoals: awayGoals,
+		}
 	}
-
-	return rows, nil
+	return predictions, nil
 }

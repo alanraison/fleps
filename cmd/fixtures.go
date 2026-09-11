@@ -13,7 +13,7 @@ var (
 		Use:   "fixtures",
 		Short: "Manage fixtures",
 	}
-	seasonID    string
+	seasonID       string
 	createRoundCmd = &cobra.Command{
 		Use:   "create-round",
 		Short: "Creates a Round",
@@ -21,7 +21,11 @@ var (
 			if len(args) != 1 {
 				return fmt.Errorf("No round supplied")
 			}
-			if err := database.AddRound(model.RoundID(args[0]), model.SeasonID(seasonID)); err != nil {
+			ctx := getAppContext(cmd)
+			if ctx == nil {
+				return fmt.Errorf("app context not found")
+			}
+			if err := ctx.fixturesRepo.AddRound(model.RoundID(args[0]), model.SeasonID(seasonID)); err != nil {
 				return fmt.Errorf("adding round: %w", err)
 			}
 			return nil
@@ -31,10 +35,13 @@ var (
 		Use:   "add",
 		Short: "Add fixtures from a CSV file",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := getAppContext(cmd)
+			if ctx == nil {
+				return fmt.Errorf("app context not found")
+			}
 			round := model.RoundID(roundID)
 			if roundID == "" {
-				var err error
-				round, err = database.GetLatestRound()
+				round, err := ctx.fixturesRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
@@ -45,7 +52,7 @@ var (
 				return fmt.Errorf("reading fixture rows for round %q: %w", round, err)
 			}
 
-			if err := database.AddFixtures(fs); err != nil {
+			if err := ctx.fixturesRepo.AddFixtures(fs); err != nil {
 				return fmt.Errorf("adding fixtures for round %q: %w", round, err)
 			}
 
@@ -56,16 +63,19 @@ var (
 		Use:   "list",
 		Short: "List fixtures for a round",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := getAppContext(cmd)
+			if ctx == nil {
+				return fmt.Errorf("app context not found")
+			}
 			var round = model.RoundID(roundID)
 			if roundID == "" {
-				var err error
-				round, err = database.GetLatestRound()
+				round, err := ctx.fixturesRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
 				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
 			}
-			f, err := database.ListFixtures(round)
+			f, err := ctx.fixturesRepo.ListFixtures(round)
 			if err != nil {
 				return fmt.Errorf("listing fixtures: %w", err)
 			}

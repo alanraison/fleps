@@ -5,16 +5,20 @@ import (
 )
 
 type Csv struct {
-	teamRepo model.TeamRepository
+	teamRepo    model.TeamRepository
+	fixtureRepo model.FixtureRepository
 }
 
 type PredictionRow struct {
-	Match       string
-	Predictions map[string]string
+	HomeTeam  string
+	AwayTeam  string
+	HomeGoals int
+	AwayGoals int
 }
 
 func NewCsv(teamRepo model.TeamRepository, fixtureRepo model.FixtureRepository) *Csv {
 	return &Csv{
-		teamRepo: teamRepo,
+		teamRepo:    teamRepo,
+		fixtureRepo: fixtureRepo,
 	}
 }

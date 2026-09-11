@@ -20,38 +20,6 @@ func NewFixtureRepository(db *sql.DB) *fixtureRepository {
 }
 
 var (
-	teamsQuery = `
-		SELECT 
-			round_id,
-			home_team,
-			away_team,
-			date_time
-		FROM 
-			fixtures
-		JOIN
-		  teams h ON fixtures.home_team = h.key
-		JOIN
-		  teams a ON fixtures.away_team = a.key
-		WHERE 
-			date_time BETWEEN ? AND ? AND (home_team IN (%s) OR away_team IN (%s))`
-	teamsResultsQuery = `
-		SELECT
-			round_id,
-			home_team,
-			away_team,
-			date_time,
-			home_goals,
-			away_goals
-		FROM 
-			fixtures
-		JOIN
-		  teams h ON fixtures.home_team = h.key
-		JOIN
-		  teams a ON fixtures.away_team = a.key
-		JOIN
-			results ON fixtures.id = results.fixture_id
-		WHERE 
-			date_time BETWEEN ? AND ? AND (home_team IN (%s) OR away_team IN (%s))`
 	listResultsQuery = `
 		SELECT
 			round_id,
@@ -110,7 +78,7 @@ func (r *fixtureRepository) ensureRoundExists(roundID model.RoundID) error {
 	return nil
 }
 
-func (r *fixtureRepository) GetLatestRound() (model.RoundID, error) {
+func (r *fixtureRepository) GetLatestRoundWithNoResults() (model.RoundID, error) {
 	var latestRoundID model.RoundID
 	if err := r.db.QueryRow(`
 			SELECT
@@ -126,7 +94,7 @@ func (r *fixtureRepository) GetLatestRound() (model.RoundID, error) {
 			HAVING
 				COUNT(results.fixture_id) = 0
 			ORDER BY
-			rounds.id ASC
+				rounds.id ASC
 			LIMIT 1
 			`).Scan(&latestRoundID); err != nil {
 		return "", fmt.Errorf("reading latest round id: %w", err)
@@ -190,7 +158,7 @@ func (r *fixtureRepository) ListFixtures(roundId model.RoundID) ([]model.Fixture
 	var rows *sql.Rows
 	var err error
 	if roundId == "" {
-		roundId, err = r.GetLatestRound()
+		roundId, err = r.GetLatestRoundWithNoResults()
 		if err != nil {
 			return nil, fmt.Errorf("getting latest round id: %w", err)
 		}
@@ -219,109 +187,16 @@ func (r *fixtureRepository) ListFixtures(roundId model.RoundID) ([]model.Fixture
 			return nil, fmt.Errorf("scanning row: %w", err)
 		}
 		fixtures = append(fixtures, model.Fixture{
-			RoundID:  model.RoundID(roundID),
-			HomeTeam: model.TeamKey(homeTeamKey),
-			AwayTeam: model.TeamKey(awayTeamKey),
-			Date:     dateTime.Local(),
+			FixtureKey: model.FixtureKey{
+				RoundID:  model.RoundID(roundID),
+				HomeTeam: model.TeamKey(homeTeamKey),
+				AwayTeam: model.TeamKey(awayTeamKey),
+			},
+			Date: dateTime.Local(),
 		})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 	return fixtures, nil
-}
-
-func (r *fixtureRepository) AddResult(
-	roundID model.RoundID,
-	homeTeam, awayTeam model.TeamKey,
-	homeScore, awayScore int) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return fmt.Errorf("starting transaction: %w", err)
-	}
-	stmt, err := tx.Prepare(`
-		INSERT INTO results (
-				fixture_id, 
-				home_goals, 
-				away_goals
-			)
-		SELECT
-			id,
-			?4,
-			?5
-		FROM fixtures
-		WHERE 
-			round_id = ?1
-		AND home_team = ?2 
-		AND away_team = ?3`)
-	if err != nil {
-		return rollbackTransaction(tx, fmt.Errorf("preparing add result statement: %w", err), "rolling back add result transaction")
-	}
-	defer stmt.Close()
-
-	res, err := stmt.Exec(roundID, homeTeam, awayTeam, homeScore, awayScore)
-	if err != nil {
-		return rollbackTransaction(tx, fmt.Errorf("executing add result statement for round %q and teams %s vs %s: %w", roundID, homeTeam, awayTeam, err), "rolling back add result transaction")
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return rollbackTransaction(tx, fmt.Errorf("checking affected rows when adding result for round %q and teams %s vs %s: %w", roundID, homeTeam, awayTeam, err), "rolling back add result transaction")
-	}
-	if rows == 0 {
-		return rollbackTransaction(tx, fmt.Errorf("no fixture found for round %q and teams %s vs %s: %w", roundID, homeTeam, awayTeam, model.UnknownFixtureErr), "rolling back add result transaction")
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("committing transaction: %w", err)
-	}
-	return nil
-}
-
-func (r *fixtureRepository) ListResults(round model.RoundID) ([]model.Result, error) {
-	var rows *sql.Rows
-	var err error
-	if err = r.db.QueryRow("SELECT true FROM rounds where id = ?", round).Scan(&[]byte{}); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("unknown round: %w", model.UnknownRoundErr)
-		}
-		return nil, fmt.Errorf("checking round existence: %w", err)
-	}
-	rows, err = r.db.Query(listResultsQuery, round)
-	if err != nil {
-		return nil, fmt.Errorf("reading results: %w", err)
-	}
-	defer rows.Close()
-
-	var results []model.Result
-	for rows.Next() {
-		var roundID string
-		var homeTeamKey string
-		var awayTeamKey string
-		var homeGoals, awayGoals int
-		var dateTime time.Time
-		if err := rows.Scan(
-			&roundID,
-			&homeTeamKey,
-			&awayTeamKey,
-			&dateTime,
-			&homeGoals,
-			&awayGoals); err != nil {
-			return nil, fmt.Errorf("scanning row: %w", err)
-		}
-		results = append(results, model.Result{
-			Fixture: model.Fixture{
-				RoundID:  model.RoundID(roundID),
-				HomeTeam: model.TeamKey(homeTeamKey),
-				AwayTeam: model.TeamKey(awayTeamKey),
-				Date:     dateTime,
-			},
-			HomeScore: homeGoals,
-			AwayScore: awayGoals,
-		})
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating rows: %w", err)
-	}
-	return results, nil
 }

@@ -44,13 +44,13 @@ func (c *Csv) ReadResultRows(input io.Reader, roundID model.RoundID) ([]*model.R
 		}
 
 		results = append(results, &model.Result{
-			Fixture: model.Fixture{
+			FixtureKey: model.FixtureKey{
 				RoundID:  roundID,
 				HomeTeam: homeTeam.Key,
 				AwayTeam: awayTeam.Key,
 			},
-			HomeScore: homeScore,
-			AwayScore: awayScore,
+			HomeGoals: homeScore,
+			AwayGoals: awayScore,
 		})
 	}
 

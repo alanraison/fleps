@@ -17,10 +17,14 @@ var (
 		Use:   "add",
 		Short: "Add a results for a fixture",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := getAppContext(cmd)
+			if ctx == nil {
+				return fmt.Errorf("app context not found")
+			}
 			var round = model.RoundID(roundID)
 			if roundID == "" {
 				var err error
-				round, err = database.GetLatestRound()
+				round, err = ctx.fixturesRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
@@ -32,7 +36,11 @@ var (
 			}
 
 			for _, result := range results {
-				if err := database.AddResult(result.RoundID, result.HomeTeam, result.AwayTeam, result.HomeScore, result.AwayScore); err != nil {
+				if err := ctx.resultsRepo.AddResult(model.FixtureKey{
+					RoundID:  result.RoundID,
+					HomeTeam: result.HomeTeam,
+					AwayTeam: result.AwayTeam,
+				}, result.HomeGoals, result.AwayGoals); err != nil {
 					return fmt.Errorf("adding result for round %q and fixture %s vs %s: %w", result.RoundID, result.HomeTeam, result.AwayTeam, err)
 				}
 			}
@@ -44,21 +52,24 @@ var (
 		Use:   "list",
 		Short: "List all results for a round",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var round = model.RoundID(roundID)
+			ctx := getAppContext(cmd)
+			if ctx == nil {
+				return fmt.Errorf("app context not found")
+			}
+			round := model.RoundID(roundID)
 			if roundID == "" {
-				var err error
-				round, err = database.GetLatestRound()
+				round, err := ctx.resultsRepo.GetLatestRoundWithResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
 				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
 			}
-			results, err := database.ListResults(round)
+			results, err := ctx.resultsRepo.ListResults(round)
 			if err != nil {
 				return fmt.Errorf("listing results for round %q: %w", round, err)
 			}
 			for _, result := range results {
-				fmt.Fprintf(cmd.OutOrStdout(), "%s %d - %d %s\n", result.HomeTeam, result.HomeScore, result.AwayScore, result.AwayTeam)
+				fmt.Fprintf(cmd.OutOrStdout(), "%s %d - %d %s\n", result.HomeTeam, result.HomeGoals, result.AwayGoals, result.AwayTeam)
 			}
 			return nil
 		},
@@ -68,7 +79,7 @@ var (
 func init() {
 	addResult.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all results in the CSV")
 	listResults.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for all results")
-	
+
 	rootCmd.AddCommand(resultsCmd)
 	resultsCmd.AddCommand(addResult)
 	resultsCmd.AddCommand(listResults)

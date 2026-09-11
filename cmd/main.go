@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -9,32 +10,67 @@ import (
 	sqlpkg "github.com/alanraison/predictions/pkg/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
+
+	"github.com/alanraison/predictions/pkg/model"
 )
 
+type appContext struct {
+	db              *sql.DB
+	teamRepo        model.TeamRepository
+	fixturesRepo    model.FixtureRepository
+	predictionsRepo model.PredictionRepository
+	resultsRepo     model.ResultRepository
+	playerRepo      model.PlayerRepository
+}
+
+func newAppContext(dbUrl string) (*appContext, error) {
+	db, err := sqlpkg.OpenDatabase(dbUrl)
+	if err != nil {
+		return nil, fmt.Errorf("opening database: %w", err)
+	}
+	database := sqlpkg.NewDatabase(db)
+
+	return &appContext{
+		db:              db,
+		teamRepo:        database,
+		fixturesRepo:    database,
+		predictionsRepo: database,
+		resultsRepo:     database,
+		playerRepo:      database,
+	}, nil
+}
+
+func getAppContext(cmd *cobra.Command) *appContext {
+	v := cmd.Context().Value("appContext")
+	if v == nil {
+		panic("appContext not found in command context")
+	}
+	return v.(*appContext)
+}
+
 var (
-	dbPath   string
-	db       *sql.DB
-	database *sqlpkg.Database
-	c        *csv.Csv
-	rootCmd  = &cobra.Command{
+	dbPath  string
+	c       *csv.Csv
+	rootCmd = &cobra.Command{
 		Use:   "predictions",
 		Short: "Predictions is a CLI tool for making football predictions",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if dbPath == "" {
 				return fmt.Errorf("db-path flag is required")
 			}
-			db, err := sqlpkg.OpenDatabase(dbPath)
+			ctx, err := newAppContext(dbPath)
 			if err != nil {
-				return fmt.Errorf("opening database: %w", err)
+				return fmt.Errorf("creating app context: %w", err)
 			}
-			database = sqlpkg.NewDatabase(db)
-			c = csv.NewCsv(database, database)
+			cmd.SetContext(context.WithValue(cmd.Context(), "appContext", ctx))
+			c = csv.NewCsv(ctx.teamRepo, ctx.fixturesRepo)
 
 			return nil
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-			if db != nil {
-				if err := db.Close(); err != nil {
+			ctx := getAppContext(cmd)
+			if ctx.db != nil {
+				if err := ctx.db.Close(); err != nil {
 					return fmt.Errorf("closing database: %w", err)
 				}
 			}

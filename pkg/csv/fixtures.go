@@ -11,7 +11,7 @@ import (
 
 func (c *Csv) ReadFixtureRows(r io.Reader, roundID model.RoundID) ([]model.Fixture, error) {
 	cr := csv.NewReader(r)
-	cr.FieldsPerRecord = -1
+	cr.FieldsPerRecord = 3
 
 	fixtures := []model.Fixture{}
 	for {
@@ -40,10 +40,12 @@ func (c *Csv) ReadFixtureRows(r io.Reader, roundID model.RoundID) ([]model.Fixtu
 		}
 
 		fixtures = append(fixtures, model.Fixture{
-			RoundID:  roundID,
-			Date:     date,
-			HomeTeam: homeTeam.Key,
-			AwayTeam: awayTeam.Key,
+			FixtureKey: model.FixtureKey{
+				RoundID:  roundID,
+				HomeTeam: homeTeam.Key,
+				AwayTeam: awayTeam.Key,
+			},
+			Date: date,
 		})
 	}
 	return fixtures, nil

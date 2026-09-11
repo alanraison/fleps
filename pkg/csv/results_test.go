@@ -21,9 +21,9 @@ LEE,BRE,0,0`)
 		t.Fatalf("expected 2 results, got %d", len(results))
 	}
 	if results[0].RoundID != "R1" || results[0].HomeTeam != "BHA" || results[0].AwayTeam != "FUL" {
-		t.Fatalf("unexpected first result fixture: %+v", results[0].Fixture)
+		t.Fatalf("unexpected first result fixture: %+v", results[0].FixtureKey)
 	}
-	if results[0].HomeScore != 2 || results[0].AwayScore != 1 {
+	if results[0].HomeGoals != 2 || results[0].AwayGoals != 1 {
 		t.Fatalf("unexpected first result score: %+v", results[0])
 	}
 }

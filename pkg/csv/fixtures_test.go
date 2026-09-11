@@ -41,6 +41,10 @@ func (m *mockTeamRepository) FindTeamByKey(key model.TeamKey) (*model.Team, erro
 	return &team, nil
 }
 
+func (m *mockTeamRepository) AddTeam(newTeam *model.Team) error {
+	return nil
+}
+
 func TestReadFixtureRows(t *testing.T) {
 	r := strings.NewReader(`2026-08-30 15:00,BHA,FUL
 2026-08-30 14:00,LEE,BRE`)
