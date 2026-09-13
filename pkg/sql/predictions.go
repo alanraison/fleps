@@ -42,9 +42,9 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 		FROM 
 			fixtures 
 		WHERE 
-			home_team = ? 
-		AND away_team = ? 
-		AND round_id = ?`)
+			home_team = $1
+		AND away_team = $2
+		AND round_id = $3`)
 	if err != nil {
 		return fmt.Errorf("preparing check fixture statement: %w", err)
 	}
@@ -56,7 +56,7 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 				home_goals, 
 				away_goals
 			)
-		VALUES (?, ?, ?, ?)`)
+		VALUES ($1, $2, $3, $4)`)
 	if err != nil {
 		return fmt.Errorf("preparing insert prediction statement: %w", err)
 	}
@@ -82,7 +82,6 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 }
 
 func (r *predictionRepository) ListPredictions(roundID model.RoundID) (model.PlayerPredictions, error) {
-	fmt.Println("Listing predictions for round:", roundID)
 	rows, err := r.db.Query(`
 		SELECT 
 			p.player, 
@@ -93,7 +92,7 @@ func (r *predictionRepository) ListPredictions(roundID model.RoundID) (model.Pla
 			p.away_goals
 		FROM predictions p
 		JOIN fixtures f ON p.fixture_id = f.id
-		WHERE f.round_id = ?`, roundID)
+		WHERE f.round_id = $1`, roundID)
 	if err != nil {
 		return nil, fmt.Errorf("listing predictions: %w", err)
 	}
@@ -101,7 +100,6 @@ func (r *predictionRepository) ListPredictions(roundID model.RoundID) (model.Pla
 
 	var predictions model.PlayerPredictions = make(model.PlayerPredictions)
 	for rows.Next() {
-		fmt.Println("Scanning next prediction row")
 		var pred model.Prediction
 		var roundID string
 		var player string

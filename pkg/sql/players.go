@@ -17,8 +17,8 @@ func NewPlayerRepository(db *sql.DB) *playerRepository {
 	}
 }
 
-func (r *playerRepository) AddPlayer(email, name string) error {
-	_, err := r.db.Exec("INSERT INTO players (email, name) VALUES (?, ?)", email, name)
+func (r *playerRepository) AddPlayer(name, email string) error {
+	_, err := r.db.Exec("INSERT INTO players (name, email) VALUES ($1, $2)", name, email)
 	if err != nil {
 		return fmt.Errorf("adding player %q: %w", email, err)
 	}

@@ -6,7 +6,7 @@ CREATE TABLE rounds (
   season_id TEXT REFERENCES seasons(id) NOT NULL
 );
 CREATE TABLE fixtures (
-  id INTEGER PRIMARY KEY,
+  id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   round_id TEXT REFERENCES rounds(id) NOT NULL,
   home_team VARCHAR(3) REFERENCES teams(key) NOT NULL,
   away_team VARCHAR(3) REFERENCES teams(key) NOT NULL,

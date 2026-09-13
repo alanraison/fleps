@@ -59,13 +59,13 @@ func (r *resultRepository) AddResult(
 			)
 		SELECT
 			id,
-			?4,
-			?5
+			$4,
+			$5
 		FROM fixtures
 		WHERE 
-			round_id = ?1
-		AND home_team = ?2 
-		AND away_team = ?3`)
+			round_id = $1
+		AND home_team = $2 
+		AND away_team = $3`)
 	if err != nil {
 		return rollbackTransaction(tx, fmt.Errorf("preparing add result statement: %w", err),
 			"rolling back add result transaction")
@@ -131,7 +131,7 @@ func (r *resultRepository) ListResults(round model.RoundID) ([]model.Result, err
 	var rows *sql.Rows
 	var err error
 	if err = r.db.QueryRow(
-		"SELECT true FROM rounds where id = ?", round,
+		"SELECT true FROM rounds where id = $1", round,
 	).Scan(&[]byte{}); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("unknown round: %w", model.UnknownRoundErr)

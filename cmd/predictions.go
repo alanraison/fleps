@@ -23,7 +23,7 @@ var (
 			}
 			round := model.RoundID(roundID)
 			if roundID == "" {
-				round, err := ctx.fixturesRepo.GetLatestRoundWithNoResults()
+				round, err := ctx.fixtureRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
@@ -33,7 +33,7 @@ var (
 			if err != nil {
 				return fmt.Errorf("reading prediction rows: %w", err)
 			}
-			if err := ctx.predictionsRepo.AddPredictions(player, round, predictions); err != nil {
+			if err := ctx.predictionRepo.AddPredictions(player, round, predictions); err != nil {
 				return fmt.Errorf("adding predictions: %w", err)
 			}
 			return nil
@@ -49,13 +49,13 @@ var (
 			}
 			round := model.RoundID(roundID)
 			if roundID == "" {
-				round, err := ctx.fixturesRepo.GetLatestRoundWithNoResults()
+				round, err := ctx.fixtureRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
 				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
 			}
-			predictions, err := ctx.predictionsRepo.ListPredictions(round)
+			predictions, err := ctx.predictionRepo.ListPredictions(round)
 			if err != nil {
 				return fmt.Errorf("listing predictions for round %q: %w", round, err)
 			}
@@ -70,7 +70,7 @@ var (
 )
 
 func init() {
-	addPrediction.Flags().StringVarP(&player, "player", "p", "", "player making the prediction")
+	addPrediction.Flags().StringVarP(&player, "player", "p", "", "email address of the player making the prediction")
 	addPrediction.Flags().StringVarP(&roundID, "round", "r", "", "round identifier for the prediction")
 	addPrediction.MarkFlagRequired("player")
 

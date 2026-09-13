@@ -9,7 +9,7 @@
       pkgs = import nixpkgs { inherit system; };
     in {
       devShell = pkgs.mkShell {
-        packages = with pkgs; [ go sqlite ];
+        packages = with pkgs; [ go postgresql ];
       };
     }
   );

@@ -8,10 +8,10 @@ import (
 func setupDefaultPlayerData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
 	pr := NewPlayerRepository(db)
-	if err := pr.AddPlayer("alan.raison@gmail.com", "Alan Raison"); err != nil {
+	if err := pr.AddPlayer("Alan Raison", "alan.raison@gmail.com"); err != nil {
 		tb.Fatalf("setupDefaultPlayerData returned error: %v", err)
 	}
-	if err := pr.AddPlayer("another.player@example.com", "Another Player"); err != nil {
+	if err := pr.AddPlayer("Another Player", "another.player@example.com"); err != nil {
 		tb.Fatalf("setupDefaultPlayerData returned error: %v", err)
 	}
 }
@@ -36,7 +36,7 @@ func TestShouldAddPlayer(t *testing.T) {
 	defer teardown(t)
 	repo := NewPlayerRepository(db)
 
-	err := repo.AddPlayer("alan.raison@gmail.com", "Alan Raison")
+	err := repo.AddPlayer("Alan Raison", "alan.raison@gmail.com")
 	if err != nil {
 		t.Fatalf("AddPlayer returned error: %v", err)
 	}

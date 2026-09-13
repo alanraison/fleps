@@ -25,7 +25,7 @@ var (
 			if ctx == nil {
 				return fmt.Errorf("app context not found")
 			}
-			if err := ctx.fixturesRepo.AddRound(model.RoundID(args[0]), model.SeasonID(seasonID)); err != nil {
+			if err := ctx.fixtureRepo.AddRound(model.RoundID(args[0]), model.SeasonID(seasonID)); err != nil {
 				return fmt.Errorf("adding round: %w", err)
 			}
 			return nil
@@ -41,7 +41,7 @@ var (
 			}
 			round := model.RoundID(roundID)
 			if roundID == "" {
-				round, err := ctx.fixturesRepo.GetLatestRoundWithNoResults()
+				round, err := ctx.fixtureRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
@@ -52,7 +52,7 @@ var (
 				return fmt.Errorf("reading fixture rows for round %q: %w", round, err)
 			}
 
-			if err := ctx.fixturesRepo.AddFixtures(fs); err != nil {
+			if err := ctx.fixtureRepo.AddFixtures(fs); err != nil {
 				return fmt.Errorf("adding fixtures for round %q: %w", round, err)
 			}
 
@@ -69,13 +69,13 @@ var (
 			}
 			var round = model.RoundID(roundID)
 			if roundID == "" {
-				round, err := ctx.fixturesRepo.GetLatestRoundWithNoResults()
+				round, err := ctx.fixtureRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
 				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
 			}
-			f, err := ctx.fixturesRepo.ListFixtures(round)
+			f, err := ctx.fixtureRepo.ListFixtures(round)
 			if err != nil {
 				return fmt.Errorf("listing fixtures: %w", err)
 			}

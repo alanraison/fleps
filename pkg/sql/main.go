@@ -13,14 +13,10 @@ type Database struct {
 	*teamRepository
 }
 
-func OpenDatabase(dbPath string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+func OpenDatabase(url string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", url)
 	if err != nil {
-		return nil, fmt.Errorf("opening database %q: %w", dbPath, err)
-	}
-	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("enabling foreign keys for %q: %w", dbPath, err)
+		return nil, fmt.Errorf("opening database %q: %w", url, err)
 	}
 	return db, nil
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/alanraison/predictions/pkg/model"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +23,7 @@ var (
 			var round = model.RoundID(roundID)
 			if roundID == "" {
 				var err error
-				round, err = ctx.fixturesRepo.GetLatestRoundWithNoResults()
+				round, err = ctx.fixtureRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
@@ -36,7 +35,7 @@ var (
 			}
 
 			for _, result := range results {
-				if err := ctx.resultsRepo.AddResult(model.FixtureKey{
+				if err := ctx.resultRepo.AddResult(model.FixtureKey{
 					RoundID:  result.RoundID,
 					HomeTeam: result.HomeTeam,
 					AwayTeam: result.AwayTeam,
@@ -58,13 +57,13 @@ var (
 			}
 			round := model.RoundID(roundID)
 			if roundID == "" {
-				round, err := ctx.resultsRepo.GetLatestRoundWithResults()
+				round, err := ctx.resultRepo.GetLatestRoundWithResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
 				fmt.Fprintf(cmd.OutOrStderr(), "Using latest round id: %s\n", round)
 			}
-			results, err := ctx.resultsRepo.ListResults(round)
+			results, err := ctx.resultRepo.ListResults(round)
 			if err != nil {
 				return fmt.Errorf("listing results for round %q: %w", round, err)
 			}

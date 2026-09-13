@@ -8,19 +8,19 @@ import (
 
 	"github.com/alanraison/predictions/pkg/csv"
 	sqlpkg "github.com/alanraison/predictions/pkg/sql"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 	"github.com/spf13/cobra"
 
 	"github.com/alanraison/predictions/pkg/model"
 )
 
 type appContext struct {
-	db              *sql.DB
-	teamRepo        model.TeamRepository
-	fixturesRepo    model.FixtureRepository
-	predictionsRepo model.PredictionRepository
-	resultsRepo     model.ResultRepository
-	playerRepo      model.PlayerRepository
+	db             *sql.DB
+	fixtureRepo    model.FixtureRepository
+	playerRepo     model.PlayerRepository
+	predictionRepo model.PredictionRepository
+	resultRepo     model.ResultRepository
+	teamRepo       model.TeamRepository
 }
 
 func newAppContext(dbUrl string) (*appContext, error) {
@@ -31,12 +31,12 @@ func newAppContext(dbUrl string) (*appContext, error) {
 	database := sqlpkg.NewDatabase(db)
 
 	return &appContext{
-		db:              db,
-		teamRepo:        database,
-		fixturesRepo:    database,
-		predictionsRepo: database,
-		resultsRepo:     database,
-		playerRepo:      database,
+		db:             db,
+		fixtureRepo:    database,
+		playerRepo:     database,
+		predictionRepo: database,
+		resultRepo:     database,
+		teamRepo:       database,
 	}, nil
 }
 
@@ -63,7 +63,7 @@ var (
 				return fmt.Errorf("creating app context: %w", err)
 			}
 			cmd.SetContext(context.WithValue(cmd.Context(), "appContext", ctx))
-			c = csv.NewCsv(ctx.teamRepo, ctx.fixturesRepo)
+			c = csv.NewCsv(ctx.teamRepo, ctx.fixtureRepo)
 
 			return nil
 		},
@@ -80,7 +80,7 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&dbPath, "db-path", "football.db", "Path to the SQLite database file")
+	rootCmd.PersistentFlags().StringVar(&dbPath, "db-url", "postgres://postgres@localhost/postgres?sslmode=disable", "Database connection URL")
 }
 
 func Execute() {

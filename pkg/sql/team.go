@@ -25,7 +25,7 @@ func (r *teamRepository) AddTeam(newTeam *model.Team) error {
 				full_name, 
 				short_name, 
 				league
-			) VALUES (?, ?, ?, ?)`,
+			) VALUES ($1, $2, $3, $4)`,
 		newTeam.Key, newTeam.FullName, newTeam.ShortName, newTeam.League,
 	)
 	if err != nil {
@@ -37,7 +37,7 @@ func (r *teamRepository) AddTeam(newTeam *model.Team) error {
 func (r *teamRepository) FindTeamByKey(key model.TeamKey) (team *model.Team, err error) {
 	team = &model.Team{}
 	err = r.db.
-		QueryRow("SELECT key, full_name, short_name, league FROM teams WHERE key = ?", key).
+		QueryRow("SELECT key, full_name, short_name, league FROM teams WHERE key = $1", key).
 		Scan(&team.Key, &team.FullName, &team.ShortName, &team.League)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("no team found with key %q: %w", key, model.UnknownTeamErr)

@@ -63,7 +63,7 @@ type Player struct {
 	Name  string
 }
 type PlayerRepository interface {
-	AddPlayer(email string, name string) error
+	AddPlayer(name string, email string) error
 	ListPlayers() ([]Player, error)
 }
 

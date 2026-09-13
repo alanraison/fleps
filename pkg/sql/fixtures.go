@@ -37,7 +37,7 @@ var (
 		JOIN
 			results ON fixtures.id = results.fixture_id
 		WHERE 
-			round_id = ?
+			round_id = $1
 	`
 )
 
@@ -67,7 +67,7 @@ func (r *fixtureRepository) validateFixtureReferences(fixture model.Fixture) err
 
 func (r *fixtureRepository) ensureRoundExists(roundID model.RoundID) error {
 	var foundRoundID string
-	err := r.db.QueryRow("SELECT id FROM rounds WHERE id = ?", roundID).Scan(&foundRoundID)
+	err := r.db.QueryRow("SELECT id FROM rounds WHERE id = $1", roundID).Scan(&foundRoundID)
 	if err == sql.ErrNoRows {
 		return fmt.Errorf("finding round %q: %w", roundID, model.UnknownRoundErr)
 	}
@@ -104,7 +104,7 @@ func (r *fixtureRepository) GetLatestRoundWithNoResults() (model.RoundID, error)
 }
 
 func (r *fixtureRepository) AddRound(id model.RoundID, season model.SeasonID) error {
-	if _, err := r.db.Exec("INSERT INTO rounds (id, season_id) VALUES (?, ?)", id, season); err != nil {
+	if _, err := r.db.Exec("INSERT INTO rounds (id, season_id) VALUES ($1, $2)", id, season); err != nil {
 		return fmt.Errorf("inserting round record: %w", err)
 	}
 	return nil
@@ -127,7 +127,7 @@ func (r *fixtureRepository) AddFixtures(fixtures []model.Fixture) error {
 			home_team,
 			away_team,
 			date_time
-		) VALUES (?, ?, ?, ?)`)
+		) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
 		return rollbackTransaction(tx, fmt.Errorf("preparing add fixtures statement: %w", err), "rolling back add fixtures transaction")
 	}
@@ -170,7 +170,7 @@ func (r *fixtureRepository) ListFixtures(roundId model.RoundID) ([]model.Fixture
 			away_team,
 			date_time
 		FROM fixtures
-		WHERE round_id = ?1
+		WHERE round_id = $1
 		ORDER BY date_time ASC
 	`, roundId)
 	if err != nil {
