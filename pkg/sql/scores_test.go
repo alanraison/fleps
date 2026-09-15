@@ -329,25 +329,6 @@ func TestCalculateRoundScores(t *testing.T) {
 		t.Fatalf("failed to add predictions for another player: %v", err)
 	}
 
-	rows, err := db.Query(`SELECT fixture_id, player, home_goals, away_goals FROM predictions`)
-	if err != nil {
-		t.Fatalf("failed to query predictions: %v", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var fixtureID string
-		var player string
-		var homeGoals int
-		var awayGoals int
-		if err := rows.Scan(&fixtureID, &player, &homeGoals, &awayGoals); err != nil {
-			t.Fatalf("failed to scan row: %v", err)
-		}
-		t.Logf("FixtureID: %s, Player: %s, HomeGoals: %d, AwayGoals: %d\n", fixtureID, player, homeGoals, awayGoals)
-	}
-	if err := rows.Err(); err != nil {
-		t.Fatalf("rows iteration error: %v", err)
-	}
-
 	scores, err := ss.CalculateRoundScores("R1")
 	if err != nil {
 		t.Fatalf("failed to calculate round scores: %v", err)
@@ -533,7 +514,7 @@ func TestCalculateSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 			AwayTeam: "CHE",
 		}: model.Prediction{
 			HomeGoals: 0,
-			AwayGoals: 0,
+			AwayGoals: 2,
 		},
 	})
 	if err != nil {
@@ -577,8 +558,8 @@ func TestCalculateSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 		t.Fatalf("failed to calculate season scores: %v", err)
 	}
 	expectedScores := map[string]int{
-		"alan.raison@gmail.com":      6,
-		"another.player@example.com": 7,
+		"alan.raison@gmail.com":      4,
+		"another.player@example.com": 6,
 	}
 	for player, expectedScore := range expectedScores {
 		if scores[player] != expectedScore {
