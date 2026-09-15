@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+// setupDefaultPlayerData inserts default players into the database:
+//
+//  * Alan Raison - alan.raison@gmail.com
+//  * Another Player - another.player@example.com
 func setupDefaultPlayerData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
 	pr := NewPlayerRepository(db)

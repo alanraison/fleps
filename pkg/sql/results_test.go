@@ -1,11 +1,60 @@
 package sql
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
 
 	"github.com/alanraison/predictions/pkg/model"
 )
+
+// setupDefaultResultDate inserts default results for fixtures in round R1:
+//
+//  * LEE 2 - 1 MUN
+//  * ARS 0 - 0 CHE
+//
+// Depends on setupDefaultFixtureData, setupDefaultTeamData, and setupDefaultRoundData being called
+// before it.
+func setupDefaultResultData(t *testing.T, db *sql.DB) {
+	if _, err := db.Exec(`
+		INSERT INTO
+			results (
+				fixture_id,
+				home_goals,
+				away_goals
+			) SELECT
+				id,
+				2,
+				1
+			FROM 
+				fixtures
+			WHERE 
+				round_id = 'R1'
+			AND home_team = 'LEE'
+			AND away_team = 'MUN';
+	`); err != nil {
+		t.Fatalf("setupDefaultResultData failed: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO
+			results (
+				fixture_id,
+				home_goals,
+				away_goals
+			) SELECT
+				id,
+				0,
+				0
+			FROM 
+				fixtures
+			WHERE 
+				round_id = 'R1'
+			AND home_team = 'ARS'
+			AND away_team = 'CHE';
+	`); err != nil {
+		t.Fatalf("setupDefaultResultData failed: %v", err)
+	}
+}
 
 func TestFixtureRepositoryAddResultShouldAddResult(t *testing.T) {
 	teardown, db := setupTestDB(t)
@@ -103,7 +152,7 @@ func TestResultRepositoryListResultsShouldReturnResultsForGivenRound(t *testing.
 	err = repo.AddResult(model.FixtureKey{
 		RoundID:  model.RoundID("R2"),
 		HomeTeam: model.TeamKey("LEE"),
-		AwayTeam: model.TeamKey("MUN"),
+		AwayTeam: model.TeamKey("CHE"),
 	}, 3, 2)
 	if err != nil {
 		t.Fatalf("AddResult returned error: %v", err)

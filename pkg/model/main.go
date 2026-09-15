@@ -83,3 +83,8 @@ type PredictionRepository interface {
 	AddPredictions(player string, roundID RoundID, predictions GamePredictions) error
 	ListPredictions(roundID RoundID) (PlayerPredictions, error)
 }
+type ScoreService interface {
+	CalculatePlayerRoundScore(player string, roundID RoundID) (int, error)
+	CalculateRoundScores(roundID RoundID) (map[string]int, error)
+	CalculateSeasonScores(seasonID SeasonID) (map[string]int, error)
+}

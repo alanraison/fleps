@@ -9,7 +9,7 @@
       pkgs = import nixpkgs { inherit system; };
     in {
       devShell = pkgs.mkShell {
-        packages = with pkgs; [ go postgresql ];
+        packages = with pkgs; [ go postgresql_18 ];
       };
     }
   );

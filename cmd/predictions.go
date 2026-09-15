@@ -23,7 +23,8 @@ var (
 			}
 			round := model.RoundID(roundID)
 			if roundID == "" {
-				round, err := ctx.fixtureRepo.GetLatestRoundWithNoResults()
+				var err error
+				round, err = ctx.fixtureRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}
@@ -49,7 +50,8 @@ var (
 			}
 			round := model.RoundID(roundID)
 			if roundID == "" {
-				round, err := ctx.fixtureRepo.GetLatestRoundWithNoResults()
+				var err error
+				round, err = ctx.fixtureRepo.GetLatestRoundWithNoResults()
 				if err != nil {
 					return fmt.Errorf("getting latest round id: %w", err)
 				}

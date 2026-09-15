@@ -67,7 +67,7 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 		var fixtureID int
 		err := checkFixtureStmt.QueryRow(game.HomeTeam, game.AwayTeam, roundID).Scan(&fixtureID)
 		if err == sql.ErrNoRows {
-			return fmt.Errorf("unknown fixture: %w", model.UnknownFixtureErr)
+			return fmt.Errorf("unknown fixture: %v: %v v %v %w", roundID, game.HomeTeam, game.AwayTeam, model.UnknownFixtureErr)
 		}
 		if err != nil {
 			return fmt.Errorf("finding fixture id: %w", err)
