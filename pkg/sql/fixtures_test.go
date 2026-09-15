@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 // setupDefaultFixtureData inserts default fixtures into the database:
 //
-//  * R1: LEE vs MUN on 2023-10-01 15:00:00
-//  * R1: ARS vs CHE on 2023-10-02 16:00:00
-//  * R2: LEE vs CHE on 2023-10-03 15:00:00
+//   - R1: LEE vs MUN on 2023-10-01 15:00:00
+//   - R1: ARS vs CHE on 2023-10-02 16:00:00
+//   - R2: LEE vs CHE on 2023-10-03 15:00:00
 //
 // Depends on setupDefaultTeamData and setupDefaultRoundData being called before it.
 func setupDefaultFixtureData(tb testing.TB, db *sql.DB) {
@@ -31,7 +31,7 @@ func setupDefaultFixtureData(tb testing.TB, db *sql.DB) {
 
 // setupDefaultSeasonData inserts default seasons into the database:
 //
-//  * S1
+//   - S1
 func setupDefaultSeasonData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
 
@@ -45,8 +45,8 @@ func setupDefaultSeasonData(tb testing.TB, db *sql.DB) {
 
 // setupDefaultRoundData inserts default rounds into the database:
 //
-//  * R1: Round 1 of season S1
-//  * R2: Round 2 of season S1
+//   - R1: Round 1 of season S1
+//   - R2: Round 2 of season S1
 func setupDefaultRoundData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
 

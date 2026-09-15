@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 const mockRound = model.RoundID("R1")

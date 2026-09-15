@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alanraison/predictions/pkg/csv"
-	sqlpkg "github.com/alanraison/predictions/pkg/sql"
+	"github.com/alanraison/fleps/pkg/csv"
+	sqlpkg "github.com/alanraison/fleps/pkg/sql"
 	_ "github.com/lib/pq"
 	"github.com/spf13/cobra"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 type appContext struct {

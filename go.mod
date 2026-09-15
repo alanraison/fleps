@@ -1,4 +1,4 @@
-module github.com/alanraison/predictions
+module github.com/alanraison/fleps
 
 go 1.26.6
 

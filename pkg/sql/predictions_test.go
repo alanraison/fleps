@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 func TestShouldAddPrediction(t *testing.T) {

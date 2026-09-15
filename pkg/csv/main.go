@@ -1,7 +1,7 @@
 package csv
 
 import (
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 type Csv struct {

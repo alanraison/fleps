@@ -3,7 +3,7 @@ package sql
 import (
 	"testing"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 func TestCalculatePlayerRoundScore_AllWrong(t *testing.T) {

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 	"github.com/spf13/cobra"
 )
 

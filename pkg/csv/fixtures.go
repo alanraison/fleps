@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 func (c *Csv) ReadFixtureRows(r io.Reader, roundID model.RoundID) ([]model.Fixture, error) {

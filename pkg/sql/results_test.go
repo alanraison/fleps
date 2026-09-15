@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 // setupDefaultResultDate inserts default results for fixtures in round R1:
 //
-//  * LEE 2 - 1 MUN
-//  * ARS 0 - 0 CHE
+//   - LEE 2 - 1 MUN
+//   - ARS 0 - 0 CHE
 //
 // Depends on setupDefaultFixtureData, setupDefaultTeamData, and setupDefaultRoundData being called
 // before it.

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 type resultRepository struct {

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 type DBScoreService struct {
@@ -68,7 +68,7 @@ func (s *DBScoreService) CalculateRoundScores(roundID model.RoundID) (map[string
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate round scores: %w", err)
 	}
-	
+
 	defer rows.Close()
 	var scores = make(map[string]int)
 	for rows.Next() {

@@ -5,15 +5,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 // setupDefaultTeamData inserts default teams into the database:
 //
-//  * LEE: Leeds United, Premier League
-//  * MUN: Manchester United, Premier League
-//  * ARS: Arsenal, Premier League
-//  * CHE: Chelsea, Premier League
+//   - LEE: Leeds United, Premier League
+//   - MUN: Manchester United, Premier League
+//   - ARS: Arsenal, Premier League
+//   - CHE: Chelsea, Premier League
 func setupDefaultTeamData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
 

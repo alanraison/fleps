@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 func TestReadResultRows(t *testing.T) {

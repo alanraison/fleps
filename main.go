@@ -1,6 +1,6 @@
 package main
 
-import "github.com/alanraison/predictions/cmd"
+import "github.com/alanraison/fleps/cmd"
 
 func main() {
 	cmd.Execute()

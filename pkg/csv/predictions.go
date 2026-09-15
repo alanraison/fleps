@@ -6,7 +6,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/alanraison/predictions/pkg/model"
+	"github.com/alanraison/fleps/pkg/model"
 )
 
 func (c *Csv) ReadPredictionRows(r io.Reader, roundID model.RoundID, player string) (model.GamePredictions, error) {
