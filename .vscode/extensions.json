@@ -1,6 +1,3 @@
 {
-  "recommendations": [
-    "golang.go",
-    "mkhl.direnv"
-  ]
+  "recommendations": ["golang.go", "mkhl.direnv", "opentofu.vscode-opentofu"]
 }
