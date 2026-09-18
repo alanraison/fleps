@@ -36,8 +36,8 @@ func setupDefaultSeasonData(tb testing.TB, db *sql.DB) {
 	tb.Helper()
 
 	if _, err := db.Exec(`
-		INSERT INTO seasons (id) VALUES
-		('S1');
+		INSERT INTO seasons (id, current) VALUES
+		('S1', TRUE);
 	`); err != nil {
 		tb.Fatalf("failed to insert season test data: %v", err)
 	}
