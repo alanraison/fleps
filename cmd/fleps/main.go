@@ -29,15 +29,14 @@ func newAppContext(dbUrl string) (*appContext, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening database: %w", err)
 	}
-	database := sqlpkg.NewDatabase(db)
 
 	return &appContext{
 		db:             db,
-		fixtureRepo:    database,
-		playerRepo:     database,
-		predictionRepo: database,
-		resultRepo:     database,
-		teamRepo:       database,
+		fixtureRepo:    sqlpkg.NewFixtureRepository(db),
+		playerRepo:     sqlpkg.NewPlayerRepository(db),
+		predictionRepo: sqlpkg.NewPredictionRepository(db),
+		resultRepo:     sqlpkg.NewResultRepository(db),
+		teamRepo:       sqlpkg.NewTeamRepository(db),
 		scoreService:   sqlpkg.NewDBScoreService(db),
 	}, nil
 }
