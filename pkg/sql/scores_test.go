@@ -348,6 +348,70 @@ func TestCalculateRoundScores(t *testing.T) {
 	}
 }
 
+func TestCalculateRoundScoresWithMissingPredictions(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
+	setupDefaultFixtureData(t, db)
+	setupDefaultPlayerData(t, db)
+	setupDefaultResultData(t, db)
+
+	pr := NewPredictionRepository(db)
+	ss := NewDBScoreService(db)
+
+	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+		model.Game{
+			HomeTeam: "LEE",
+			AwayTeam: "MUN",
+		}: model.Prediction{
+			HomeGoals: 2,
+			AwayGoals: 1,
+		},
+		model.Game{
+			HomeTeam: "ARS",
+			AwayTeam: "CHE",
+		}: model.Prediction{
+			HomeGoals: 1,
+			AwayGoals: 1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to add predictions: %v", err)
+	}
+	err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
+		model.Game{
+			HomeTeam: "ARS",
+			AwayTeam: "CHE",
+		}: model.Prediction{
+			HomeGoals: 0,
+			AwayGoals: 0,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to add predictions for another player: %v", err)
+	}
+
+	scores, err := ss.CalculateRoundScores("R1")
+	if err != nil {
+		t.Fatalf("failed to calculate round scores: %v", err)
+	}
+	expectedScores := map[string]int{
+		"alan.raison@gmail.com": 4,
+		"another.player@example.com": 3,
+	}
+	for player, expectedScore := range expectedScores {
+		score, ok := scores[player]
+		if !ok {
+			t.Fatalf("expected score for player %s, but not found", player)
+		}
+		if score != expectedScore {
+			t.Fatalf("expected score for player %s to be %d, got %d", player, expectedScore, score)
+		}
+	}
+}
+
 func TestCalculateSeasonScores_FirstRound_OnePlayer(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
@@ -556,6 +620,107 @@ func TestCalculateSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 	scores, err := ss.CalculateSeasonScores("S1")
 	if err != nil {
 		t.Fatalf("failed to calculate season scores: %v", err)
+	}
+	expectedScores := map[string]int{
+		"alan.raison@gmail.com":      4,
+		"another.player@example.com": 6,
+	}
+	for player, expectedScore := range expectedScores {
+		if scores[player] != expectedScore {
+			t.Fatalf("expected score for player %s to be %d, got %d", player, expectedScore, scores[player])
+		}
+	}
+}
+
+func TestCalculateCurrentSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
+	setupDefaultFixtureData(t, db)
+	setupDefaultPlayerData(t, db)
+	setupDefaultResultData(t, db)
+
+	pr := NewPredictionRepository(db)
+	ss := NewDBScoreService(db)
+
+	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+		model.Game{
+			HomeTeam: "LEE",
+			AwayTeam: "MUN",
+		}: model.Prediction{
+			HomeGoals: 2,
+			AwayGoals: 1,
+		},
+		model.Game{
+			HomeTeam: "ARS",
+			AwayTeam: "CHE",
+		}: model.Prediction{
+			HomeGoals: 1,
+			AwayGoals: 1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to add predictions: %v", err)
+	}
+
+	err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
+		model.Game{
+			HomeTeam: "LEE",
+			AwayTeam: "MUN",
+		}: model.Prediction{
+			HomeGoals: 2,
+			AwayGoals: 1,
+		},
+		model.Game{
+			HomeTeam: "ARS",
+			AwayTeam: "CHE",
+		}: model.Prediction{
+			HomeGoals: 0,
+			AwayGoals: 2,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to add predictions for another player: %v", err)
+	}
+
+	err = pr.AddPredictions("alan.raison@gmail.com", "R2", model.GamePredictions{
+		model.Game{
+			HomeTeam: "LEE",
+			AwayTeam: "CHE",
+		}: model.Prediction{
+			HomeGoals: 3,
+			AwayGoals: 1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to add predictions: %v", err)
+	}
+
+	err = pr.AddPredictions("another.player@example.com", "R2", model.GamePredictions{
+		model.Game{
+			HomeTeam: "LEE",
+			AwayTeam: "CHE",
+		}: model.Prediction{
+			HomeGoals: 1,
+			AwayGoals: 1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to add predictions for another player: %v", err)
+	}
+
+	rr := NewResultRepository(db)
+	rr.AddResult(model.FixtureKey{
+		RoundID:  "R2",
+		HomeTeam: "LEE",
+		AwayTeam: "CHE",
+	}, 1, 1)
+
+	scores, err := ss.CalculateCurrentSeasonScores()
+	if err != nil {
+		t.Fatalf("failed to calculate current season scores: %v", err)
 	}
 	expectedScores := map[string]int{
 		"alan.raison@gmail.com":      4,

@@ -87,4 +87,5 @@ type ScoreService interface {
 	CalculatePlayerRoundScore(player string, roundID RoundID) (int, error)
 	CalculateRoundScores(roundID RoundID) (map[string]int, error)
 	CalculateSeasonScores(seasonID SeasonID) (map[string]int, error)
+	CalculateCurrentSeasonScores() (map[string]int, error)
 }

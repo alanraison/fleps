@@ -21,6 +21,7 @@ type appContext struct {
 	predictionRepo model.PredictionRepository
 	resultRepo     model.ResultRepository
 	teamRepo       model.TeamRepository
+	scoreService   model.ScoreService
 }
 
 func newAppContext(dbUrl string) (*appContext, error) {
@@ -37,6 +38,7 @@ func newAppContext(dbUrl string) (*appContext, error) {
 		predictionRepo: database,
 		resultRepo:     database,
 		teamRepo:       database,
+		scoreService:   sqlpkg.NewDBScoreService(db),
 	}, nil
 }
 
@@ -49,7 +51,7 @@ func getAppContext(cmd *cobra.Command) *appContext {
 }
 
 var (
-	dbURL  string
+	dbURL   string
 	c       *csv.Csv
 	rootCmd = &cobra.Command{
 		Use:   "fleps",
