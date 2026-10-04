@@ -1,6 +1,7 @@
 CREATE TABLE players (
   email VARCHAR(100) PRIMARY KEY,
-  name VARCHAR(100) NOT NULL
+  name VARCHAR(100) NOT NULL,
+  active BOOLEAN DEFAULT TRUE
 );
 CREATE TABLE predictions (
   player VARCHAR(100) NOT NULL REFERENCES players(email),

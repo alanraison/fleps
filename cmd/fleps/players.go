@@ -38,7 +38,7 @@ var (
 			if ctx == nil {
 				return fmt.Errorf("app context not found")
 			}
-			players, err := ctx.playerRepo.ListPlayers()
+			players, err := ctx.playerRepo.ListActivePlayers()
 			if err != nil {
 				return fmt.Errorf("listing players: %w", err)
 			}

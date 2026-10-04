@@ -59,12 +59,16 @@ type ResultRepository interface {
 	ListResults(roundID RoundID) ([]Result, error)
 }
 type Player struct {
-	Email string
-	Name  string
+	Email  string
+	Name   string
+	Active bool
 }
 type PlayerRepository interface {
 	AddPlayer(name string, email string) error
-	ListPlayers() ([]Player, error)
+	GetPlayerByEmail(email string) (*Player, error)
+	ListActivePlayers() ([]Player, error)
+	DisablePlayerByEmail(email string) error
+	EnablePlayerByEmail(email string) error
 }
 
 // Game represents a football match between two teams. It does not contain a fixture date or round,
