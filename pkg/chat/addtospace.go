@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 )
 
@@ -19,26 +20,11 @@ type RemovedFromSpace struct {
 	SpaceType       SpaceType
 }
 
-
-func NewResponseMessageWithText(text string) dataActions {
-	return dataActions{
-		HostAppDataAction: hostAppDataAction{
-			ChatDataAction: chatDataAction{
-				CreateMessageAction: &createMessageAction{
-					Message: message{
-						Text: text,
-					},
-				},
-			},
-		},
-	}
-}
-
 func NewAddedToSpaceEvent(body io.Reader) (*AddedToSpace, error) {
 	var event AddedToSpace
 	err := json.NewDecoder(body).Decode(&event.cloudEvent)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decoding added-to-space event: %w", err)
 	}
 	event.UserEmail = event.cloudEvent.Chat.User.Email
 	event.UserDisplayName = event.cloudEvent.Chat.User.DisplayName
@@ -50,7 +36,7 @@ func NewRemovedFromSpaceEvent(body io.Reader) (*RemovedFromSpace, error) {
 	var event RemovedFromSpace
 	err := json.NewDecoder(body).Decode(&event.cloudEvent)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decoding removed-from-space event: %w", err)
 	}
 	event.UserEmail = event.cloudEvent.Chat.User.Email
 	event.UserDisplayName = event.cloudEvent.Chat.User.DisplayName
