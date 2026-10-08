@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/alanraison/fleps/pkg/chat"
+	chatmodel "github.com/alanraison/fleps/pkg/chat/model"
 	"github.com/alanraison/fleps/pkg/model"
 )
 
@@ -18,7 +19,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error parsing chat event: %v\n", err)
 		return
 	}
-	if event.SpaceType != chat.TypeDirectMessage {
+	if event.SpaceType != chatmodel.TypeDirectMessage {
 		fmt.Printf("Ignoring non-direct message event. SpaceType: %s\n", event.SpaceType)
 		w.Write([]byte(`{}`))
 		return

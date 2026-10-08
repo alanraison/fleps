@@ -19,21 +19,6 @@ type RemovedFromSpace struct {
 	SpaceType       SpaceType
 }
 
-
-func NewResponseMessageWithText(text string) dataActions {
-	return dataActions{
-		HostAppDataAction: hostAppDataAction{
-			ChatDataAction: chatDataAction{
-				CreateMessageAction: &createMessageAction{
-					Message: message{
-						Text: text,
-					},
-				},
-			},
-		},
-	}
-}
-
 func NewAddedToSpaceEvent(body io.Reader) (*AddedToSpace, error) {
 	var event AddedToSpace
 	err := json.NewDecoder(body).Decode(&event.cloudEvent)
