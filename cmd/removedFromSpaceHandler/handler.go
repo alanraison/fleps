@@ -13,7 +13,7 @@ type handler struct {
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	event, err := chat.NewChatEvent(r.Body)
+	event, err := chat.NewRemovedFromSpaceEvent(r.Body)
 	if err != nil {
 		fmt.Printf("Error parsing chat event: %v\n", err)
 		return
