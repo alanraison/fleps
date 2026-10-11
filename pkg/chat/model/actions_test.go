@@ -32,3 +32,20 @@ func TestChatDataActionMarkupJSON(t *testing.T) {
 		t.Errorf("marshaled JSON = %s, want %s", got, want)
 	}
 }
+
+func TestRenderActionsJSON(t *testing.T) {
+	ra := RenderActions{
+		Action: &RenderAction{
+			Navigations:  []Navigation{{PushCard: &Card{}}, {PopToRoot: true}, {EndNavigation: &EndNavigation{Action: EndNavigationCloseDialog}}},
+			Notification: &Notification{Text: "done"},
+		},
+	}
+	got, err := json.Marshal(ra)
+	if err != nil {
+		t.Fatalf("marshaling render actions: %v", err)
+	}
+	const want = `{"action":{"navigations":[{"pushCard":{}},{"popToRoot":true},{"endNavigation":{"action":"CLOSE_DIALOG"}}],"notification":{"text":"done"}}}`
+	if string(got) != want {
+		t.Errorf("marshaled JSON = %s, want %s", got, want)
+	}
+}

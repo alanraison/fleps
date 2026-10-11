@@ -29,6 +29,10 @@ func newAppContext(dbUrl string) (*appContext, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening database: %w", err)
 	}
+	teamRepo, err := sqlpkg.NewTeamRepository(db)
+	if err != nil {
+		return nil, fmt.Errorf("creating team repository: %w", err)
+	}
 
 	return &appContext{
 		db:             db,
@@ -36,7 +40,7 @@ func newAppContext(dbUrl string) (*appContext, error) {
 		playerRepo:     sqlpkg.NewPlayerRepository(db),
 		predictionRepo: sqlpkg.NewPredictionRepository(db),
 		resultRepo:     sqlpkg.NewResultRepository(db),
-		teamRepo:       sqlpkg.NewTeamRepository(db),
+		teamRepo:       teamRepo,
 		scoreService:   sqlpkg.NewDBScoreService(db),
 	}, nil
 }

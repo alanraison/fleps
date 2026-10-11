@@ -35,9 +35,13 @@ func setupDefaultTeamData(tb testing.TB, db *sql.DB) {
 func TestTeamRepositoryFindTeamByKey_FindsExistingKey(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := NewTeamRepository(db)
-
 	setupDefaultTeamData(t, db)
+
+	repo, err := NewTeamRepository(db)
+	if err != nil {
+		t.Fatalf("failed to create team repository: %v", err)
+	}
+
 	team, err := repo.FindTeamByKey("LEE")
 	if err != nil {
 		t.Fatalf("FindTeamByKey returned error: %v", err)
@@ -59,7 +63,10 @@ func TestTeamRepositoryFindTeamByKey_FindsExistingKey(t *testing.T) {
 func TestTeamRepositoryFindTeamByKey_ReturnsNotFoundForNonExistingKey(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := NewTeamRepository(db)
+	repo, err := NewTeamRepository(db)
+	if err != nil {
+		t.Fatalf("failed to create team repository: %v", err)
+	}
 
 	setupDefaultTeamData(t, db)
 
@@ -78,9 +85,12 @@ func TestTeamRepositoryFindTeamByKey_ReturnsNotFoundForNonExistingKey(t *testing
 func TestTeamRepositoryAddTeam(t *testing.T) {
 	teardown, db := setupTestDB(t)
 	defer teardown(t)
-	repo := NewTeamRepository(db)
-
 	setupDefaultTeamData(t, db)
+
+	repo, err := NewTeamRepository(db)
+	if err != nil {
+		t.Fatalf("failed to create team repository: %v", err)
+	}
 
 	newTeam := &model.Team{
 		Key:       "TOT",

@@ -112,6 +112,26 @@ resource "google_cloud_run_v2_service" "command" {
   template {
     containers {
       image = "${google_artifact_registry_repository.this.registry_uri}/command:latest"
+      env {
+        name  = "PGHOST"
+        value = google_sql_database_instance.this.connection_name
+      }
+      env {
+        name  = "PGUSER"
+        value = trimsuffix(google_service_account.this.email, ".gserviceaccount.com")
+      }
+      env {
+        name  = "PGDATABASE"
+        value = "fleps"
+      }
+      env {
+        name  = "PGSSLMODE"
+        value = "disable"
+      }
+      env {
+        name  = "ACTION_URL"
+        value = google_cloud_run_v2_service.action.uri
+      }
     }
     service_account = google_service_account.this.email
   }
@@ -159,6 +179,43 @@ resource "google_cloud_run_v2_service" "message" {
 resource "google_cloud_run_v2_service_iam_member" "message" {
   name     = google_cloud_run_v2_service.message.name
   location = google_cloud_run_v2_service.message.location
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${var.chat_service_account}"
+}
+
+resource "google_cloud_run_v2_service" "action" {
+  name                = "fleps-action"
+  location            = "europe-west2"
+  description         = "Fleps Action handler"
+  deletion_protection = false
+
+  template {
+    containers {
+      image = "${google_artifact_registry_repository.this.registry_uri}/action:latest"
+      env {
+        name  = "PGHOST"
+        value = google_sql_database_instance.this.connection_name
+      }
+      env {
+        name  = "PGUSER"
+        value = trimsuffix(google_service_account.this.email, ".gserviceaccount.com")
+      }
+      env {
+        name  = "PGDATABASE"
+        value = "fleps"
+      }
+      env {
+        name  = "PGSSLMODE"
+        value = "disable"
+      }
+    }
+    service_account = google_service_account.this.email
+  }
+}
+
+resource "google_cloud_run_v2_service_iam_member" "action" {
+  name     = google_cloud_run_v2_service.action.name
+  location = google_cloud_run_v2_service.action.location
   role     = "roles/run.invoker"
   member   = "serviceAccount:${var.chat_service_account}"
 }

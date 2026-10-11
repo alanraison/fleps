@@ -10,6 +10,8 @@ import (
 
 type handler struct {
 	fixtureRepository model.FixtureRepository
+	teamRepository    model.TeamRepository
+	actionUrl         string
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -22,9 +24,19 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	switch event.CommandId {
 	case chat.MakePredictionsCommand:
-		// Handle the MakePredictionsCommand
+		bytes, err := h.handleMakePredictions(h.actionUrl)
+		if err != nil {
+			fmt.Printf("Error handling MakePredictionsCommand: %v\n", err)
+			w.WriteHeader(500)
+			w.Write([]byte(`{}`))
+			return
+		}
+		fmt.Printf("Response bytes: %s\n", string(bytes))
+		w.Write(bytes)
 	default:
+		fmt.Printf("CommandId %v not handled", event.CommandId)
+		w.WriteHeader(400)
+		w.Write([]byte("{}"))
 		// Handle unknown commands
 	}
-	w.Write([]byte("{}"))
 }

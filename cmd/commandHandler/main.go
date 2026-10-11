@@ -30,8 +30,15 @@ func main() {
 		fmt.Printf("Error pinging database: %v\n", err)
 		return
 	}
+	teamRepo, err := sqlpkg.NewTeamRepository(db)
+	if err != nil {
+		fmt.Printf("Error creating team repository: %v\n", err)
+		return
+	}
 	http.Handle("/", &handler{
 		fixtureRepository: sqlpkg.NewFixtureRepository(db),
+		teamRepository:    teamRepo,
+		actionUrl:         os.Getenv("ACTION_URL"),
 	})
 	port := os.Getenv("PORT")
 	if port == "" {

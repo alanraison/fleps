@@ -54,7 +54,10 @@ func (r *fixtureRepository) validateFixtureReferences(fixture model.Fixture) err
 		return fmt.Errorf("validating round %q for fixture %s vs %s: %w", fixture.RoundID, fixture.HomeTeam, fixture.AwayTeam, err)
 	}
 
-	teamRepo := NewTeamRepository(r.db)
+	teamRepo, err := NewTeamRepository(r.db)
+	if err != nil {
+		return fmt.Errorf("creating team repository: %w", err)
+	}
 	if _, err := teamRepo.FindTeamByKey(fixture.HomeTeam); err != nil {
 		return fmt.Errorf("validating home team %q for fixture in round %q: %w", fixture.HomeTeam, fixture.RoundID, err)
 	}

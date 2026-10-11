@@ -398,7 +398,7 @@ func TestCalculateRoundScoresWithMissingPredictions(t *testing.T) {
 		t.Fatalf("failed to calculate round scores: %v", err)
 	}
 	expectedScores := map[string]int{
-		"alan.raison@gmail.com": 4,
+		"alan.raison@gmail.com":      4,
 		"another.player@example.com": 3,
 	}
 	for player, expectedScore := range expectedScores {
