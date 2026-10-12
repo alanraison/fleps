@@ -82,7 +82,12 @@ type Prediction struct {
 	AwayGoals int
 }
 type GamePredictions map[Game]Prediction
-type PlayerPredictions map[string]GamePredictions
+type PlayerPrediction struct {
+	Player     string
+	Game       Game
+	Prediction Prediction
+}
+type PlayerPredictions []PlayerPrediction
 type PredictionRepository interface {
 	AddPredictions(player string, roundID RoundID, predictions GamePredictions) error
 	ListPredictions(roundID RoundID) (PlayerPredictions, error)

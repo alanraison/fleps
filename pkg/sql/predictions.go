@@ -88,29 +88,28 @@ func (r *predictionRepository) ListPredictions(roundID model.RoundID) (model.Pla
 	rows, err := r.db.Query(`
 		SELECT 
 			p.player, 
-			f.round_id,
 			f.home_team,
 			f.away_team, 
 			p.home_goals, 
 			p.away_goals
 		FROM predictions p
 		JOIN fixtures f ON p.fixture_id = f.id
-		WHERE f.round_id = $1`, roundID)
+		JOIN teams h ON f.home_team = h.key
+		WHERE f.round_id = $1
+		ORDER BY f.date_time ASC, h.league ASC, h.full_name ASC, p.player ASC`, roundID)
 	if err != nil {
 		return nil, fmt.Errorf("listing predictions: %w", err)
 	}
 	defer rows.Close()
 
-	var predictions model.PlayerPredictions = make(model.PlayerPredictions)
+	var predictions model.PlayerPredictions
 	for rows.Next() {
 		var pred model.Prediction
-		var roundID string
 		var player string
 		var homeTeamKey string
 		var awayTeamKey string
 		if err := rows.Scan(
 			&player,
-			&roundID,
 			&homeTeamKey,
 			&awayTeamKey,
 			&pred.HomeGoals,
@@ -118,19 +117,20 @@ func (r *predictionRepository) ListPredictions(roundID model.RoundID) (model.Pla
 		); err != nil {
 			return nil, fmt.Errorf("scanning prediction row: %w", err)
 		}
-		if _, ok := predictions[player]; !ok {
-			predictions[player] = make(model.GamePredictions)
-		}
 		if homeTeamKey == "" {
 			return nil, fmt.Errorf("home team key is empty")
 		}
 		if awayTeamKey == "" {
 			return nil, fmt.Errorf("away team key is empty")
 		}
-		predictions[player][model.Game{
-			HomeTeam: model.TeamKey(homeTeamKey),
-			AwayTeam: model.TeamKey(awayTeamKey),
-		}] = pred
+		predictions = append(predictions, model.PlayerPrediction{
+			Player: player,
+			Game: model.Game{
+				HomeTeam: model.TeamKey(homeTeamKey),
+				AwayTeam: model.TeamKey(awayTeamKey),
+			},
+			Prediction: pred,
+		})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating prediction rows: %w", err)

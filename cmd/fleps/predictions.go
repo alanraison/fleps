@@ -61,10 +61,8 @@ var (
 			if err != nil {
 				return fmt.Errorf("listing predictions for round %q: %w", round, err)
 			}
-			for player, games := range predictions {
-				for game, prediction := range games {
-					fmt.Fprintf(cmd.OutOrStdout(), "Player: %s, Game: %s vs %s, Prediction: %d - %d\n", player, game.HomeTeam, game.AwayTeam, prediction.HomeGoals, prediction.AwayGoals)
-				}
+			for _, result := range predictions {
+				fmt.Fprintf(cmd.OutOrStdout(), "Player: %s, Game: %s vs %s, Prediction: %d - %d\n", result.Player, result.Game.HomeTeam, result.Game.AwayTeam, result.Prediction.HomeGoals, result.Prediction.AwayGoals)
 			}
 			return nil
 		},

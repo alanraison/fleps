@@ -48,14 +48,17 @@ func TestShouldAddPrediction(t *testing.T) {
 	if len(predictions) != 1 {
 		t.Fatalf("expected 1 prediction, got %d", len(predictions))
 	}
-	prediction := predictions["alan.raison@gmail.com"]
-	p, ok := prediction[model.Game{
+	result := predictions[0]
+	if result.Player != player {
+		t.Fatalf("expected prediction for player %q, got %q", player, result.Player)
+	}
+	if result.Game != (model.Game{
 		HomeTeam: f.HomeTeam,
 		AwayTeam: f.AwayTeam,
-	}]
-	if !ok {
-		t.Fatalf("prediction for home team '%s'/away team '%s' not found", f.HomeTeam, f.AwayTeam)
+	}) {
+		t.Fatalf("unexpected game: %+v", result.Game)
 	}
+	p := result.Prediction
 	if p.HomeGoals != 2 {
 		t.Fatalf("expected home goals 2, got %d", p.HomeGoals)
 	}
@@ -151,23 +154,18 @@ func TestShouldAddMultiplePredictions(t *testing.T) {
 	if len(predictions) != 2 {
 		t.Fatalf("expected 2 predictions, got %d", len(predictions))
 	}
-	if g, ok := predictions["alan.raison@gmail.com"]; !ok {
-		t.Fatalf("expected prediction for alan.raison@gmail.com, got none")
-	} else {
-		if p, ok := g[game]; !ok {
-			t.Fatalf("expected prediction for game %+v, got none", game)
-		} else if p.HomeGoals != 2 || p.AwayGoals != 1 {
-			t.Fatalf("unexpected prediction for alan.raison@gmail.com: %+v", g)
+	gotByPlayer := make(map[string]model.Prediction)
+	for _, result := range predictions {
+		gotByPlayer[result.Player] = result.Prediction
+		if result.Game != game {
+			t.Fatalf("unexpected game for player %s: %+v", result.Player, result.Game)
 		}
 	}
-	if g, ok := predictions[player2]; !ok {
-		t.Fatalf("expected prediction for player %s, got none", player2)
-	} else {
-		if p, ok := g[game]; !ok {
-			t.Fatalf("expected prediction for game %+v, got none", game)
-		} else if p.HomeGoals != 3 || p.AwayGoals != 2 {
-			t.Fatalf("unexpected prediction for player %s: %+v", player2, g)
-		}
+	if p := gotByPlayer["alan.raison@gmail.com"]; p.HomeGoals != 2 || p.AwayGoals != 1 {
+		t.Fatalf("unexpected prediction for alan.raison@gmail.com: %+v", p)
+	}
+	if p := gotByPlayer[player2]; p.HomeGoals != 3 || p.AwayGoals != 2 {
+		t.Fatalf("unexpected prediction for player %s: %+v", player2, p)
 	}
 }
 
@@ -226,13 +224,62 @@ func TestShouldListRoundPredictions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListPredictions returned error: %v", err)
 	}
-	if g, ok := predictions[player]; !ok {
-		t.Fatalf("expected prediction for player %s, got none", player)
-	} else {
-		if p, ok := g[game]; !ok {
-			t.Fatalf("expected prediction for game %+v, got none", game)
-		} else if p.HomeGoals != 2 || p.AwayGoals != 1 {
-			t.Fatalf("unexpected prediction for player %s: %+v", player, g)
+	if len(predictions) != 1 {
+		t.Fatalf("expected 1 prediction, got %d", len(predictions))
+	}
+	if predictions[0].Player != player || predictions[0].Game != game {
+		t.Fatalf("unexpected prediction result: %+v", predictions[0])
+	}
+	if p := predictions[0].Prediction; p.HomeGoals != 2 || p.AwayGoals != 1 {
+		t.Fatalf("unexpected prediction for player %s: %+v", player, p)
+	}
+}
+
+func TestListPredictionsOrdersByKickoffLeagueAndHomeTeamName(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
+	setupDefaultPlayerData(t, db)
+	if _, err := db.Exec(`
+		INSERT INTO leagues (rank, name) VALUES (2, 'Championship');
+		INSERT INTO teams (key, full_name, short_name, league)
+		VALUES ('NEW', 'Newcastle United', 'Newcastle', 2);
+		INSERT INTO fixtures (round_id, home_team, away_team, date_time) VALUES
+			('R1', 'ARS', 'CHE', '2023-10-03 15:00:00'),
+			('R1', 'NEW', 'ARS', '2023-10-02 15:00:00'),
+			('R1', 'LEE', 'MUN', '2023-10-02 15:00:00'),
+			('R1', 'CHE', 'ARS', '2023-10-02 15:00:00'),
+			('R1', 'LEE', 'CHE', '2023-10-01 15:00:00');
+	`); err != nil {
+		t.Fatalf("failed to insert ordered prediction fixtures: %v", err)
+	}
+
+	games := model.GamePredictions{
+		{HomeTeam: "ARS", AwayTeam: "CHE"}: {HomeGoals: 1, AwayGoals: 0},
+		{HomeTeam: "NEW", AwayTeam: "ARS"}: {HomeGoals: 1, AwayGoals: 0},
+		{HomeTeam: "LEE", AwayTeam: "MUN"}: {HomeGoals: 1, AwayGoals: 0},
+		{HomeTeam: "CHE", AwayTeam: "ARS"}: {HomeGoals: 1, AwayGoals: 0},
+		{HomeTeam: "LEE", AwayTeam: "CHE"}: {HomeGoals: 1, AwayGoals: 0},
+	}
+	repo := NewPredictionRepository(db)
+	player := "alan.raison@gmail.com"
+	if err := repo.AddPredictions(player, "R1", games); err != nil {
+		t.Fatalf("AddPredictions returned error: %v", err)
+	}
+
+	predictions, err := repo.ListPredictions("R1")
+	if err != nil {
+		t.Fatalf("ListPredictions returned error: %v", err)
+	}
+	wantHomeTeams := []model.TeamKey{"LEE", "CHE", "LEE", "NEW", "ARS"}
+	if len(predictions) != len(wantHomeTeams) {
+		t.Fatalf("expected %d predictions, got %d", len(wantHomeTeams), len(predictions))
+	}
+	for i, want := range wantHomeTeams {
+		if got := predictions[i].Game.HomeTeam; got != want {
+			t.Errorf("predictions[%d].Game.HomeTeam = %q, want %q", i, got, want)
 		}
 	}
 }
