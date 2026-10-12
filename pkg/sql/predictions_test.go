@@ -236,3 +236,69 @@ func TestShouldListRoundPredictions(t *testing.T) {
 		}
 	}
 }
+
+func TestShouldUpdateExistingPrediction(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
+	setupDefaultFixtureData(t, db)
+	setupDefaultPlayerData(t, db)
+
+	player := "alan.raison@gmail.com"
+	round := model.RoundID("R1")
+	fs, err := NewFixtureRepository(db).ListFixtures(round)
+	if err != nil {
+		t.Fatalf("ListFixtures returned error: %v", err)
+	}
+	game := model.Game{HomeTeam: fs[0].HomeTeam, AwayTeam: fs[0].AwayTeam}
+	repo := NewPredictionRepository(db)
+	for _, p := range []model.Prediction{{HomeGoals: 2, AwayGoals: 1}, {HomeGoals: 0, AwayGoals: 3}} {
+		if err := repo.AddPredictions(player, round, model.GamePredictions{game: p}); err != nil {
+			t.Fatalf("AddPredictions returned error: %v", err)
+		}
+	}
+	predictions, err := repo.ListPredictions(round)
+	if err != nil {
+		t.Fatalf("ListPredictions returned error: %v", err)
+	}
+	if got := predictions[player][game]; got != (model.Prediction{HomeGoals: 0, AwayGoals: 3}) {
+		t.Errorf("expected updated prediction, got %v", got)
+	}
+}
+
+func TestShouldGetPredictionsForPlayer(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
+	setupDefaultFixtureData(t, db)
+	setupDefaultPlayerData(t, db)
+
+	player := "alan.raison@gmail.com"
+	round := model.RoundID("R1")
+	fs, err := NewFixtureRepository(db).ListFixtures(round)
+	if err != nil {
+		t.Fatalf("ListFixtures returned error: %v", err)
+	}
+	game := model.Game{HomeTeam: fs[0].HomeTeam, AwayTeam: fs[0].AwayTeam}
+	repo := NewPredictionRepository(db)
+
+	none, err := repo.GetPredictionsForPlayer(player, round)
+	if err != nil || len(none) != 0 {
+		t.Fatalf("expected no predictions, got %v, %v", none, err)
+	}
+	want := model.Prediction{HomeGoals: 2, AwayGoals: 1}
+	if err := repo.AddPredictions(player, round, model.GamePredictions{game: want}); err != nil {
+		t.Fatalf("AddPredictions returned error: %v", err)
+	}
+	got, err := repo.GetPredictionsForPlayer(player, round)
+	if err != nil {
+		t.Fatalf("GetPredictionsForPlayer returned error: %v", err)
+	}
+	if len(got) != 1 || got[game] != want {
+		t.Errorf("unexpected predictions: %v", got)
+	}
+}

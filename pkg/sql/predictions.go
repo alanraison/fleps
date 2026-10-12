@@ -23,8 +23,9 @@ func NewPredictionRepository(db *sql.DB) *predictionRepository {
 //
 // roundID is the ID of the round for which the predictions are being made.
 //
-// predictions is a map of games to the predicted outcomes.
-func (r *predictionRepository) AddPredictions(player string, roundID model.RoundID, predictions model.GamePredictions) error {
+// predictions is a map of games to the predicted outcomes. Existing predictions for the
+// same player and fixture are replaced.
+func (r *predictionRepository) AddPredictions(player string, roundID model.RoundID, predictions model.GamePredictions) (err error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return fmt.Errorf("starting transaction: %w", err)
@@ -56,7 +57,9 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 				home_goals, 
 				away_goals
 			)
-		VALUES ($1, $2, $3, $4)`)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (player, fixture_id) DO UPDATE
+		SET home_goals = EXCLUDED.home_goals, away_goals = EXCLUDED.away_goals`)
 	if err != nil {
 		return fmt.Errorf("preparing insert prediction statement: %w", err)
 	}
@@ -65,7 +68,7 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 
 	for game, pred := range predictions {
 		var fixtureID int
-		err := checkFixtureStmt.QueryRow(game.HomeTeam, game.AwayTeam, roundID).Scan(&fixtureID)
+		err = checkFixtureStmt.QueryRow(game.HomeTeam, game.AwayTeam, roundID).Scan(&fixtureID)
 		if err == sql.ErrNoRows {
 			return fmt.Errorf("unknown fixture: %v: %v v %v %w", roundID, game.HomeTeam, game.AwayTeam, model.UnknownFixtureErr)
 		}
@@ -127,6 +130,42 @@ func (r *predictionRepository) ListPredictions(roundID model.RoundID) (model.Pla
 		predictions[player][model.Game{
 			HomeTeam: model.TeamKey(homeTeamKey),
 			AwayTeam: model.TeamKey(awayTeamKey),
+		}] = pred
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating prediction rows: %w", err)
+	}
+	return predictions, nil
+}
+
+// GetPredictionsForPlayer returns the predictions made by the player (identified by email) for a
+// round. The result is empty if the player has made no predictions.
+func (r *predictionRepository) GetPredictionsForPlayer(player string, roundID model.RoundID) (model.GamePredictions, error) {
+	rows, err := r.db.Query(`
+		SELECT
+			f.home_team,
+			f.away_team,
+			p.home_goals,
+			p.away_goals
+		FROM predictions p
+		JOIN fixtures f ON p.fixture_id = f.id
+		WHERE p.player = $1
+		AND f.round_id = $2`, player, roundID)
+	if err != nil {
+		return nil, fmt.Errorf("querying predictions for player %q in round %v: %w", player, roundID, err)
+	}
+	defer rows.Close()
+
+	predictions := make(model.GamePredictions)
+	for rows.Next() {
+		var homeTeam, awayTeam string
+		var pred model.Prediction
+		if err := rows.Scan(&homeTeam, &awayTeam, &pred.HomeGoals, &pred.AwayGoals); err != nil {
+			return nil, fmt.Errorf("scanning prediction row: %w", err)
+		}
+		predictions[model.Game{
+			HomeTeam: model.TeamKey(homeTeam),
+			AwayTeam: model.TeamKey(awayTeam),
 		}] = pred
 	}
 	if err := rows.Err(); err != nil {

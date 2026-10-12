@@ -31,7 +31,10 @@ func main() {
 		return
 	}
 	http.Handle("/", &handler{
-		playerRepository: sqlpkg.NewPlayerRepository(db),
+		verifier:             googleVerifier{},
+		audience:             os.Getenv("ACTION_AUDIENCE"),
+		playerRepository:     sqlpkg.NewPlayerRepository(db),
+		predictionRepository: sqlpkg.NewPredictionRepository(db),
 	})
 	port := os.Getenv("PORT")
 	if port == "" {

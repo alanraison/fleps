@@ -179,5 +179,5 @@ resource "google_cloud_run_v2_service_iam_member" "action" {
   name     = google_cloud_run_v2_service.action.name
   location = google_cloud_run_v2_service.action.location
   role     = "roles/run.invoker"
-  member   = "serviceAccount:${var.chat_service_account}"
+  member   = "allAuthenticatedUsers"
 }

@@ -36,9 +36,10 @@ func main() {
 		return
 	}
 	http.Handle("/", &handler{
-		fixtureRepository: sqlpkg.NewFixtureRepository(db),
-		teamRepository:    teamRepo,
-		actionUrl:         os.Getenv("ACTION_URL"),
+		fixtureRepository:    sqlpkg.NewFixtureRepository(db),
+		teamRepository:       teamRepo,
+		predictionRepository: sqlpkg.NewPredictionRepository(db),
+		actionUrl:            os.Getenv("ACTION_URL"),
 	})
 	port := os.Getenv("PORT")
 	if port == "" {

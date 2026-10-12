@@ -9,9 +9,10 @@ import (
 )
 
 type handler struct {
-	fixtureRepository model.FixtureRepository
-	teamRepository    model.TeamRepository
-	actionUrl         string
+	fixtureRepository    model.FixtureRepository
+	teamRepository       model.TeamRepository
+	predictionRepository model.PredictionRepository
+	actionUrl            string
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +25,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	switch event.CommandId {
 	case chat.MakePredictionsCommand:
-		bytes, err := h.handleMakePredictions(h.actionUrl)
+		bytes, err := h.handleMakePredictions(h.actionUrl, event.UserEmail)
 		if err != nil {
 			fmt.Printf("Error handling MakePredictionsCommand: %v\n", err)
 			w.WriteHeader(500)

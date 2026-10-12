@@ -3,6 +3,7 @@ package chat
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	chatmodel "github.com/alanraison/fleps/pkg/chat/model"
 	"github.com/alanraison/fleps/pkg/model"
@@ -24,7 +25,7 @@ func PredictionsDialogBuilder(
 }
 
 func (pdb *predictionsDialogBuilder) MakePredictionsDialog(
-	email string,
+	roundID model.RoundID,
 	fixtures []model.Fixture,
 	predictions model.GamePredictions,
 ) *chatmodel.RenderActions {
@@ -39,7 +40,7 @@ func (pdb *predictionsDialogBuilder) MakePredictionsDialog(
 					PushCard: &chatmodel.Card{
 						Header: &chatmodel.CardHeader{
 							Title:    "Enter your predictions",
-							Subtitle: fmt.Sprintf("Season %v, Round %v", "2026/27", "26/27R5"),
+							Subtitle: fmt.Sprintf("Round %v", roundID),
 						},
 						Sections: sections,
 						FixedFooter: &chatmodel.CardFixedFooter{
@@ -51,7 +52,11 @@ func (pdb *predictionsDialogBuilder) MakePredictionsDialog(
 										Parameters: []chatmodel.ActionParameter{
 											{
 												Key:   "actionName",
-												Value: "submitPredictions",
+												Value: SubmitPredictionsAction,
+											},
+											{
+												Key:   "roundId",
+												Value: string(roundID),
 											},
 										},
 									},
@@ -96,7 +101,7 @@ func (pdb *predictionsDialogBuilder) matchSection(fixture model.Fixture, predict
 							Widgets: []chatmodel.ColumnWidget{
 								{
 									TextInput: &chatmodel.TextInput{
-										Name:  string(fixture.HomeTeam),
+										Name:  GoalsInputName(fixture.HomeTeam, fixture.AwayTeam, HomeSide),
 										Label: string(homeTeam.ShortName),
 										Value: strconv.Itoa(homeGoals),
 									},
@@ -110,7 +115,7 @@ func (pdb *predictionsDialogBuilder) matchSection(fixture model.Fixture, predict
 							Widgets: []chatmodel.ColumnWidget{
 								{
 									TextInput: &chatmodel.TextInput{
-										Name:  string(fixture.AwayTeam),
+										Name:  GoalsInputName(fixture.HomeTeam, fixture.AwayTeam, AwaySide),
 										Label: string(awayTeam.ShortName),
 										Value: strconv.Itoa(awayGoals),
 									},
@@ -122,4 +127,31 @@ func (pdb *predictionsDialogBuilder) matchSection(fixture model.Fixture, predict
 			},
 		},
 	}
+}
+
+// Side identifies which team's goals a prediction input holds.
+type Side string
+
+const (
+	HomeSide Side = "home"
+	AwaySide Side = "away"
+)
+
+// GoalsInputName is the form input name for one side of a game's prediction.
+func GoalsInputName(home, away model.TeamKey, side Side) string {
+	return fmt.Sprintf("%s_%s_%s", home, away, side)
+}
+
+// ParseGoalsInputName is the inverse of GoalsInputName. ok is false if name
+// is not a prediction input.
+func ParseGoalsInputName(name string) (game model.Game, side Side, ok bool) {
+	parts := strings.Split(name, "_")
+	if len(parts) != 3 || parts[0] == "" || parts[1] == "" {
+		return model.Game{}, "", false
+	}
+	side = Side(parts[2])
+	if side != HomeSide && side != AwaySide {
+		return model.Game{}, "", false
+	}
+	return model.Game{HomeTeam: model.TeamKey(parts[0]), AwayTeam: model.TeamKey(parts[1])}, side, true
 }

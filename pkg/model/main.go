@@ -86,6 +86,8 @@ type PlayerPredictions map[string]GamePredictions
 type PredictionRepository interface {
 	AddPredictions(player string, roundID RoundID, predictions GamePredictions) error
 	ListPredictions(roundID RoundID) (PlayerPredictions, error)
+	// GetPredictionsForPlayer returns the player's predictions for a round, empty if they have made none.
+	GetPredictionsForPlayer(player string, roundID RoundID) (GamePredictions, error)
 }
 type ScoreService interface {
 	CalculatePlayerRoundScore(player string, roundID RoundID) (int, error)

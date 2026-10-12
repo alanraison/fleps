@@ -13,6 +13,8 @@ const (
 type AppCommand struct {
 	cloudEvent cloudEvent[appCommandEvent]
 	CommandId  float64
+	// UserEmail is the email of the user who invoked the command.
+	UserEmail string
 }
 
 func NewAppCommandEvent(body io.Reader) (*AppCommand, error) {
@@ -22,5 +24,6 @@ func NewAppCommandEvent(body io.Reader) (*AppCommand, error) {
 		return nil, fmt.Errorf("decoding app command event: %w", err)
 	}
 	event.CommandId = event.cloudEvent.Chat.AppCommand.Metadata.AppCommandId
+	event.UserEmail = event.cloudEvent.Chat.User.Email
 	return &event, nil
 }
