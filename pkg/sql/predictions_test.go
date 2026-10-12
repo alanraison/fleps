@@ -310,7 +310,7 @@ func TestShouldUpdateExistingPrediction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListPredictions returned error: %v", err)
 	}
-	if got := predictions[player][game]; got != (model.Prediction{HomeGoals: 0, AwayGoals: 3}) {
+	if got := predictions[0].Prediction; got != (model.Prediction{HomeGoals: 0, AwayGoals: 3}) {
 		t.Errorf("expected updated prediction, got %v", got)
 	}
 }
