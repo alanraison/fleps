@@ -25,15 +25,15 @@ resource "google_artifact_registry_repository" "this" {
   depends_on = [google_project_service.artifact_registry]
 }
 
-resource "google_cloud_run_v2_service" "added_to_space" {
-  name                = "fleps-added-to-space"
+resource "google_cloud_run_v2_service" "space" {
+  name                = "fleps-space"
   location            = "europe-west2"
-  description         = "Fleps Added To Space handler"
+  description         = "Fleps Space handler"
   deletion_protection = false
 
   template {
     containers {
-      image = "${google_artifact_registry_repository.this.registry_uri}/added-to-space:latest"
+      image = "${google_artifact_registry_repository.this.registry_uri}/space:latest"
       env {
         name  = "PGHOST"
         value = google_sql_database_instance.this.connection_name
@@ -58,47 +58,9 @@ resource "google_cloud_run_v2_service" "added_to_space" {
   depends_on = [google_project_service.cloud_run]
 }
 
-resource "google_cloud_run_v2_service_iam_member" "added_to_space" {
-  name     = google_cloud_run_v2_service.added_to_space.name
-  location = google_cloud_run_v2_service.added_to_space.location
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${var.chat_service_account}"
-}
-
-resource "google_cloud_run_v2_service" "removed_from_space" {
-  name                = "fleps-removed-from-space"
-  location            = "europe-west2"
-  description         = "Fleps Removed From Space handler"
-  deletion_protection = false
-
-  template {
-    containers {
-      image = "${google_artifact_registry_repository.this.registry_uri}/removed-from-space:latest"
-      env {
-        name  = "PGHOST"
-        value = google_sql_database_instance.this.connection_name
-      }
-      env {
-        name  = "PGUSER"
-        value = trimsuffix(google_service_account.this.email, ".gserviceaccount.com")
-      }
-      env {
-        name  = "PGDATABASE"
-        value = "fleps"
-      }
-      env {
-        name  = "PGSSLMODE"
-        value = "disable"
-      }
-    }
-    service_account = google_service_account.this.email
-  }
-  depends_on = [google_project_service.cloud_run]
-}
-
-resource "google_cloud_run_v2_service_iam_member" "removed_from_space" {
-  name     = google_cloud_run_v2_service.removed_from_space.name
-  location = google_cloud_run_v2_service.removed_from_space.location
+resource "google_cloud_run_v2_service_iam_member" "space" {
+  name     = google_cloud_run_v2_service.space.name
+  location = google_cloud_run_v2_service.space.location
   role     = "roles/run.invoker"
   member   = "serviceAccount:${var.chat_service_account}"
 }

@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -47,5 +48,31 @@ func TestEventDecodeErrors(t *testing.T) {
 		if err := fn(); err == nil {
 			t.Errorf("%s: expected error for malformed JSON", name)
 		}
+	}
+}
+
+func TestNewSpaceEvent(t *testing.T) {
+	tests := map[string]struct {
+		body string
+		want SpaceEventKind
+		err  error
+	}{
+		"added":   {`{"chat":{"user":{"email":"a@b.c"},"addedToSpacePayload":{"space":{"type":"DM"}}}}`, SpaceEventAdded, nil},
+		"removed": {`{"chat":{"user":{"email":"a@b.c"},"removedFromSpacePayload":{"space":{"type":"DM"}}}}`, SpaceEventRemoved, nil},
+		"other":   {`{"chat":{"appCommandPayload":{}}}`, 0, ErrUnknownSpaceEvent},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := NewSpaceEvent(strings.NewReader(tc.body))
+			if !errors.Is(err, tc.err) {
+				t.Fatalf("err = %v, want %v", err, tc.err)
+			}
+			if err == nil && (got.Kind != tc.want || got.UserEmail != "a@b.c" || got.SpaceType != TypeDirectMessage) {
+				t.Errorf("unexpected event: %+v", got)
+			}
+		})
+	}
+	if _, err := NewSpaceEvent(strings.NewReader("{")); err == nil {
+		t.Error("expected error for malformed JSON")
 	}
 }

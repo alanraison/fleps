@@ -16,3 +16,13 @@ func TestNewResponseMessageWithText(t *testing.T) {
 		t.Errorf("marshaled response = %s, want %s", got, want)
 	}
 }
+
+func TestNewErrorNotification(t *testing.T) {
+	b, err := json.Marshal(NewErrorNotification("oops"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != `{"action":{"notification":{"text":"oops"}}}` {
+		t.Errorf("got %s", b)
+	}
+}

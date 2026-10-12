@@ -31,14 +31,13 @@ func main() {
 		return
 	}
 
-	addedToSpaceHandler := &handler{
+	h := &handler{
 		playerRepository: sqlpkg.NewPlayerRepository(db),
 	}
-	http.Handle("/", addedToSpaceHandler)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 	fmt.Printf("Starting server on port %s\n", port)
-	http.ListenAndServe(":"+port, nil)
+	http.ListenAndServe(":"+port, h)
 }

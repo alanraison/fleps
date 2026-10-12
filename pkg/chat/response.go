@@ -15,3 +15,14 @@ func NewResponseMessageWithText(text string) chatmodel.DataActionsMarkup {
 		},
 	}
 }
+
+// NewErrorNotification returns a response which makes Google Chat show text to
+// the user as a notification. It should be sent with a 200 status, as Chat
+// only displays the content of successful responses.
+func NewErrorNotification(text string) chatmodel.RenderActions {
+	return chatmodel.RenderActions{
+		Action: &chatmodel.RenderAction{
+			Notification: &chatmodel.Notification{Text: text},
+		},
+	}
+}
