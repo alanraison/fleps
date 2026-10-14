@@ -8,6 +8,7 @@ import (
 
 const (
 	MakePredictionsCommand = 10.0
+	ShowResultsCommand     = 11.0
 )
 
 type AppCommand struct {

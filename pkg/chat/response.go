@@ -26,3 +26,29 @@ func NewErrorNotification(text string) chatmodel.RenderActions {
 		},
 	}
 }
+
+// NewResponseMessageWithImage returns a response which posts a card containing
+// the image at imageURL.
+func NewResponseMessageWithImage(title, imageURL, altText string) chatmodel.DataActionsMarkup {
+	return chatmodel.DataActionsMarkup{
+		HostAppDataAction: &chatmodel.HostAppDataActionMarkup{
+			ChatDataAction: &chatmodel.ChatDataActionMarkup{
+				CreateMessageAction: &chatmodel.CreateMessageActionMarkup{
+					Message: &chatmodel.Message{
+						CardsV2: []chatmodel.CardWithID{{
+							CardID: "results",
+							Card: &chatmodel.Card{
+								Header: &chatmodel.CardHeader{Title: title},
+								Sections: []chatmodel.Section{{
+									Widgets: []chatmodel.Widget{{
+										Image: &chatmodel.Image{ImageURL: imageURL, AltText: altText},
+									}},
+								}},
+							},
+						}},
+					},
+				},
+			},
+		},
+	}
+}

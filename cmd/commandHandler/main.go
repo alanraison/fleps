@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -8,7 +9,9 @@ import (
 
 	"cloud.google.com/go/cloudsqlconn"
 	"cloud.google.com/go/cloudsqlconn/postgres/pgxv5"
+	"github.com/alanraison/fleps/pkg/render"
 	sqlpkg "github.com/alanraison/fleps/pkg/sql"
+	"github.com/alanraison/fleps/pkg/storage"
 )
 
 func main() {
@@ -35,7 +38,23 @@ func main() {
 		fmt.Printf("Error creating team repository: %v\n", err)
 		return
 	}
+	uploader, err := storage.NewImageUploader(context.Background(), os.Getenv("ASSETS_BUCKET"))
+	if err != nil {
+		fmt.Printf("Error creating image uploader: %v\n", err)
+		return
+	}
 	http.Handle("/", &handler{
+		results: &showResults{
+			sources: render.Sources{
+				Fixtures:    sqlpkg.NewFixtureRepository(db),
+				Results:     sqlpkg.NewResultRepository(db),
+				Predictions: sqlpkg.NewPredictionRepository(db),
+				Players:     sqlpkg.NewPlayerRepository(db),
+				Teams:       teamRepo,
+				Scores:      sqlpkg.NewDBScoreService(db),
+			},
+			uploader: uploader,
+		},
 		fixtureRepository:    sqlpkg.NewFixtureRepository(db),
 		teamRepository:       teamRepo,
 		predictionRepository: sqlpkg.NewPredictionRepository(db),

@@ -94,9 +94,19 @@ resource "google_cloud_run_v2_service" "command" {
         name  = "ACTION_URL"
         value = google_cloud_run_v2_service.action.uri
       }
+      env {
+        name  = "ASSETS_BUCKET"
+        value = google_storage_bucket.this.name
+      }
     }
     service_account = google_service_account.this.email
   }
+}
+
+resource "google_storage_bucket_iam_member" "command_writer" {
+  bucket = google_storage_bucket.this.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.this.email}"
 }
 
 resource "google_cloud_run_v2_service_iam_member" "command" {

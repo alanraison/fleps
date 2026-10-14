@@ -29,8 +29,15 @@ type DeleteMessageActionMarkup struct {
 }
 
 type Message struct {
-	Name string `json:"name,omitempty"`
-	Text string `json:"text,omitempty"`
+	Name    string       `json:"name,omitempty"`
+	Text    string       `json:"text,omitempty"`
+	CardsV2 []CardWithID `json:"cardsV2,omitempty"`
+}
+
+// CardWithID is a card in a message, identified by a unique ID.
+type CardWithID struct {
+	CardID string `json:"cardId"`
+	Card   *Card  `json:"card"`
 }
 
 // RenderActions is a set of render instructions that tells a host application
