@@ -13,6 +13,7 @@ type handler struct {
 	teamRepository       model.TeamRepository
 	predictionRepository model.PredictionRepository
 	actionUrl            string
+	results              resultsSource
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +34,15 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Printf("Response bytes: %s\n", string(bytes))
+		w.Write(bytes)
+	case chat.ShowResultsCommand:
+		bytes, err := h.handleShowResults(r.Context())
+		if err != nil {
+			fmt.Printf("Error handling ShowResultsCommand: %v\n", err)
+			w.WriteHeader(500)
+			w.Write([]byte(`{}`))
+			return
+		}
 		w.Write(bytes)
 	default:
 		fmt.Printf("CommandId %v not handled", event.CommandId)
