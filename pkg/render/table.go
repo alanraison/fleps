@@ -30,10 +30,13 @@ var (
 	black         = color.RGBA{A: 0xff}
 )
 
+// scale multiplies every pixel dimension; Chat scales the image to the card
+// width, so a higher value gives sharper, larger text.
 const (
-	padding   = 10
-	rowHeight = 34
-	fontSize  = 16
+	scale     = 2
+	padding   = 10 * scale
+	rowHeight = 34 * scale
+	fontSize  = 16 * scale
 )
 
 // Cell is a single prediction, with the points it earned.
@@ -153,7 +156,7 @@ func RenderPNG(t *Table) ([]byte, error) {
 				dc.Fill()
 			}
 			dc.SetColor(lineColour)
-			dc.SetLineWidth(1)
+			dc.SetLineWidth(scale)
 			dc.DrawRectangle(float64(x)+0.5, float64(y)+0.5, float64(widths[c]), rowHeight)
 			dc.Stroke()
 			if fills[c] == outcomeColour {
