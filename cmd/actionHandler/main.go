@@ -31,8 +31,6 @@ func main() {
 		return
 	}
 	http.Handle("/", &handler{
-		verifier:             googleVerifier{},
-		audience:             os.Getenv("ACTION_AUDIENCE"),
 		playerRepository:     sqlpkg.NewPlayerRepository(db),
 		predictionRepository: sqlpkg.NewPredictionRepository(db),
 	})

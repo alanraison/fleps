@@ -33,8 +33,10 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 	defer func() {
 		if err != nil {
 			tx.Rollback()
-		} else {
-			tx.Commit()
+			return
+		}
+		if cerr := tx.Commit(); cerr != nil {
+			err = fmt.Errorf("committing predictions: %w", cerr)
 		}
 	}()
 	checkFixtureStmt, err := tx.Prepare(`

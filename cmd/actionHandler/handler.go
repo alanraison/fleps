@@ -1,39 +1,28 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/alanraison/fleps/pkg/chat"
 	chatmodel "github.com/alanraison/fleps/pkg/chat/model"
 	"github.com/alanraison/fleps/pkg/model"
 )
 
-// tokenVerifier validates a Google ID token and returns the verified email it asserts.
-type tokenVerifier interface {
-	VerifiedEmail(ctx context.Context, token, audience string) (string, error)
-}
-
 type handler struct {
-	verifier tokenVerifier
-	// audience is the expected token audience; defaults to this service's URL as seen in the request.
-	audience             string
 	playerRepository     model.PlayerRepository
 	predictionRepository model.PredictionRepository
 }
 
-var (
-	errNotAPlayer   = errors.New("user is not a registered player")
-	errUnauthorised = errors.New("request is not authorised for this user")
-)
+var errNotAPlayer = errors.New("user is not a registered player")
 
-// ServeHTTP handles card actions. Failures are reported as a Chat notification
-// with a 200 status, as Chat only displays the content of successful responses.
+// ServeHTTP handles card actions. Callers are authenticated by Cloud Run IAM
+// before the request reaches this handler, and the user is taken from the event.
+// Failures are reported as a Chat notification with a 200 status, as Chat only
+// displays the content of successful responses.
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	event, err := chat.NewActionEvent(r.Body)
 	if err != nil {
@@ -41,17 +30,6 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, chat.NewErrorNotification("Sorry, Fleps couldn't understand that request."))
 		return
 	}
-	email, err := h.authenticate(r)
-	if err == nil && !strings.EqualFold(email, event.UserEmail) {
-		err = fmt.Errorf("token user %q does not match payload user %q: %w", email, event.UserEmail, errUnauthorised)
-	}
-	if err != nil {
-		fmt.Printf("Rejecting action: %v\n", err)
-		w.WriteHeader(http.StatusUnauthorized)
-		writeJSONBody(w, chat.NewErrorNotification("Sorry, Fleps couldn't verify who you are."))
-		return
-	}
-	event.UserEmail = email
 	switch event.Parameters["actionName"] {
 	case chat.SubmitPredictionsAction:
 		if err := h.submitPredictions(event); err != nil {
@@ -81,27 +59,6 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Unhandled action: %q\n", event.Parameters["actionName"])
 		writeJSON(w, chat.NewErrorNotification("Sorry, Fleps couldn't understand that request."))
 	}
-}
-
-// authenticate verifies the bearer ID token on the request and returns the
-// verified email address of the caller.
-func (h *handler) authenticate(r *http.Request) (string, error) {
-	token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if !ok || token == "" {
-		return "", fmt.Errorf("missing bearer token: %w", errUnauthorised)
-	}
-	audience := h.audience
-	if audience == "" {
-		audience = "https://" + r.Host
-	}
-	email, err := h.verifier.VerifiedEmail(r.Context(), token, audience)
-	if err != nil {
-		return "", fmt.Errorf("verifying token: %w: %w", err, errUnauthorised)
-	}
-	if email == "" {
-		return "", fmt.Errorf("token has no verified email: %w", errUnauthorised)
-	}
-	return email, nil
 }
 
 var errInvalidPrediction = errors.New("invalid prediction")
