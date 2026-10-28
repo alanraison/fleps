@@ -3,7 +3,9 @@ package chat
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
+	"time"
 
 	chatmodel "github.com/alanraison/fleps/pkg/chat/model"
 	"github.com/alanraison/fleps/pkg/model"
@@ -19,6 +21,10 @@ func (f fakeTeams) FindTeamByKey(k model.TeamKey) (*model.Team, error) {
 }
 
 type fakeBadges map[string]string
+
+type fakeFixtures []model.Fixture
+
+func (f fakeFixtures) ListFixtures(model.RoundID) ([]model.Fixture, error) { return f, nil }
 
 type fakeLogos map[model.TeamKey]string
 
@@ -37,9 +43,13 @@ func newTestNotifier(create func(context.Context, string, *chatmodel.Message) er
 	return &Notifier{
 		space: "spaces/X",
 		teams: fakeTeams{
-			"ARS": {Key: "ARS", ShortName: "Arsenal"},
-			"CHE": {Key: "CHE", ShortName: "Chelsea"},
-			"BMT": {Key: "BMT", ShortName: "B'mth"},
+			"ARS": {Key: "ARS", ShortName: "Arsenal", League: 1},
+			"CHE": {Key: "CHE", ShortName: "Chelsea", League: 1},
+			"BMT": {Key: "BMT", ShortName: "B'mth", League: 2},
+		},
+		fixtures: fakeFixtures{
+			{FixtureKey: model.FixtureKey{HomeTeam: "ARS", AwayTeam: "CHE"}, Date: time.Date(2026, 1, 2, 15, 0, 0, 0, time.UTC)},
+			{FixtureKey: model.FixtureKey{HomeTeam: "BMT", AwayTeam: "XXX"}, Date: time.Date(2026, 1, 2, 12, 0, 0, 0, time.UTC)},
 		},
 		logos:  fakeLogos{"ARS": "arsenal"},
 		badges: fakeBadges{"Arsenal": "http://img/ars.png", "Chelsea": "http://img/che.png"},
@@ -72,15 +82,15 @@ func TestNotifyPredictionsBuildsCard(t *testing.T) {
 	if len(ws) != 2 {
 		t.Fatalf("expected 2 widgets, got %d", len(ws))
 	}
-	first := ws[0].DecoratedText
-	if first.Text != "<b>Arsenal</b> 2 – 1 <b>Chelsea</b>" ||
-		first.StartIcon.IconURL != "http://img/ars.png" || first.EndIcon.IconURL != "http://img/che.png" {
-		t.Errorf("unexpected first widget: %+v", first)
+	firstHome, firstAway := ws[1].Columns.ColumnItems[0].Widgets[0].DecoratedText, ws[1].Columns.ColumnItems[1].Widgets[0].DecoratedText
+	if firstHome.Text != "<b>Arsenal  2</b>" || firstAway.Text != "<b>1  Chelsea</b>" ||
+		firstHome.StartIcon.IconURL != "http://img/ars.png" || firstAway.EndIcon.IconURL != "http://img/che.png" {
+		t.Errorf("unexpected first widget: %+v %+v", firstHome, firstAway)
 	}
 	// Unknown team falls back to its key with no badge; missing badge omits the icon.
-	second := ws[1].DecoratedText
-	if second.Text != "<b>B&#39;mth</b> 0 – 0 <b>XXX</b>" || second.StartIcon != nil || second.EndIcon != nil {
-		t.Errorf("unexpected second widget: %+v", second)
+	secondHome, secondAway := ws[0].Columns.ColumnItems[0].Widgets[0].DecoratedText, ws[0].Columns.ColumnItems[1].Widgets[0].DecoratedText
+	if secondHome.Text != "<b>B&#39;mth  0</b>" || secondAway.Text != "<b>0  XXX</b>" || secondHome.StartIcon != nil || secondAway.EndIcon != nil {
+		t.Errorf("unexpected second widget: %+v %+v", secondHome, secondAway)
 	}
 }
 
@@ -90,4 +100,58 @@ func TestNotifyPredictionsWrapsError(t *testing.T) {
 	if err := n.NotifyPredictions(context.Background(), model.Player{}, "R1", nil); !errors.Is(err, boom) {
 		t.Errorf("expected wrapped error, got %v", err)
 	}
+}
+
+func TestNotifyPredictionsOrdering(t *testing.T) {
+	t0 := time.Date(2026, 1, 2, 12, 0, 0, 0, time.UTC)
+	fx := func(h, a model.TeamKey, d time.Time) model.Fixture {
+		return model.Fixture{FixtureKey: model.FixtureKey{HomeTeam: h, AwayTeam: a}, Date: d}
+	}
+	var msg *chatmodel.Message
+	n := newTestNotifier(func(_ context.Context, _ string, m *chatmodel.Message) error { msg = m; return nil })
+	n.teams = fakeTeams{
+		"AVL": {ShortName: "Villa", League: 1}, "WOL": {ShortName: "Wolves", League: 1},
+		"BUR": {ShortName: "Burnley", League: 2}, "ARS": {ShortName: "Arsenal", League: 1},
+		"X": {ShortName: "X", League: 1}, "Y": {ShortName: "Y", League: 1},
+	}
+	n.fixtures = fakeFixtures{
+		fx("ARS", "X", t0.Add(time.Hour)),
+		fx("BUR", "X", t0),
+		fx("WOL", "X", t0),
+		fx("AVL", "Y", t0),
+		fx("AVL", "X", t0),
+		fx("ARS", "Y", t0), // not predicted
+	}
+	preds := model.GamePredictions{}
+	for _, g := range [][2]model.TeamKey{{"ARS", "X"}, {"BUR", "X"}, {"WOL", "X"}, {"AVL", "Y"}, {"AVL", "X"}} {
+		preds[model.Game{HomeTeam: g[0], AwayTeam: g[1]}] = model.Prediction{}
+	}
+	if err := n.NotifyPredictions(context.Background(), model.Player{}, "R1", preds); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, w := range msg.CardsV2[0].Card.Sections[0].Widgets {
+		got = append(got, w.Columns.ColumnItems[0].Widgets[0].DecoratedText.Text+"|"+w.Columns.ColumnItems[1].Widgets[0].DecoratedText.Text)
+	}
+	want := []string{
+		"<b>Villa  0</b>|<b>0  X</b>", "<b>Villa  0</b>|<b>0  Y</b>", "<b>Wolves  0</b>|<b>0  X</b>",
+		"<b>Burnley  0</b>|<b>0  X</b>", "<b>Arsenal  0</b>|<b>0  X</b>",
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestNotifyPredictionsFixtureError(t *testing.T) {
+	n := newTestNotifier(func(context.Context, string, *chatmodel.Message) error { return nil })
+	n.fixtures = errFixtures{}
+	if err := n.NotifyPredictions(context.Background(), model.Player{}, "R1", nil); err == nil {
+		t.Error("expected error")
+	}
+}
+
+type errFixtures struct{}
+
+func (errFixtures) ListFixtures(model.RoundID) ([]model.Fixture, error) {
+	return nil, errors.New("boom")
 }

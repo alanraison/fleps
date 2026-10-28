@@ -48,7 +48,7 @@ func main() {
 			fmt.Printf("Error loading team logos: %v\n", err)
 			return
 		}
-		n, err := chat.NewNotifier(context.Background(), space, teams, teamLogos, logos.NewResolver())
+		n, err := chat.NewNotifier(context.Background(), space, teams, sqlpkg.NewFixtureRepository(db), teamLogos, logos.NewResolver())
 		if err != nil {
 			fmt.Printf("Error creating notifier: %v\n", err)
 			return
