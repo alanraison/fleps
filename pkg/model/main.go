@@ -9,6 +9,7 @@ var (
 	UnknownTeamErr    = errors.New("unknown team")
 	UnknownFixtureErr = errors.New("unknown fixture")
 	UnknownRoundErr   = errors.New("unknown round")
+	UnknownLogoErr    = errors.New("unknown team logo")
 )
 
 type TeamKey string
@@ -44,6 +45,12 @@ type Result struct {
 type TeamRepository interface {
 	AddTeam(newTeam *Team) error
 	FindTeamByKey(key TeamKey) (*Team, error)
+}
+
+// TeamLogoRepository maps teams to their slug in the football-logos.cc catalog.
+type TeamLogoRepository interface {
+	// FindLogoSlugByTeamKey returns UnknownLogoErr if the team has no logo.
+	FindLogoSlugByTeamKey(key TeamKey) (string, error)
 }
 type FixtureRepository interface {
 	GetLatestRoundWithNoResults() (RoundID, error)

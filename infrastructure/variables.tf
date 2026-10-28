@@ -12,3 +12,8 @@ variable "chat_service_account" {
   description = "The service account email for the Chat API."
   type        = string
 }
+variable "main_space" {
+  description = "Chat space (e.g. spaces/AAAA) where submitted predictions are announced. Leave empty to disable."
+  type        = string
+  default     = ""
+}
