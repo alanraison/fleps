@@ -155,36 +155,17 @@ func (n *Notifier) predictionsMessage(ctx context.Context, name string, round mo
 	}, nil
 }
 
-// predictionWidget lays a game out as two equal columns, the home side aligned
-// to the right and the away side to the left, so that the two scores meet in the
-// centre of the card.
 func predictionWidget(home, away side, p model.Prediction) chatmodel.Widget {
-	homeText := &chatmodel.DecoratedText{
-		Text: fmt.Sprintf("<b>%s  %d</b>", html.EscapeString(home.name), p.HomeGoals),
+	dt := &chatmodel.DecoratedText{
+		Text: fmt.Sprintf("<b>%s</b> %d – %d <b>%s</b>", html.EscapeString(home.name), p.HomeGoals, p.AwayGoals, html.EscapeString(away.name)),
 	}
 	if home.badge != "" {
-		homeText.StartIcon = &chatmodel.Icon{IconURL: home.badge, AltText: home.name}
-	}
-	awayText := &chatmodel.DecoratedText{
-		Text: fmt.Sprintf("<b>%d  %s</b>", p.AwayGoals, html.EscapeString(away.name)),
+		dt.StartIcon = &chatmodel.Icon{IconURL: home.badge, AltText: home.name}
 	}
 	if away.badge != "" {
-		awayText.EndIcon = &chatmodel.Icon{IconURL: away.badge, AltText: away.name}
+		dt.EndIcon = &chatmodel.Icon{IconURL: away.badge, AltText: away.name}
 	}
-	return chatmodel.Widget{Columns: &chatmodel.Columns{ColumnItems: []chatmodel.Column{
-		{
-			HorizontalSizeStyle: chatmodel.HorizontalSizeStyleFillAvailableSpace,
-			HorizontalAlignment: chatmodel.HorizontalAlignmentEnd,
-			VerticalAlignment:   chatmodel.ColumnVerticalAlignmentCenter,
-			Widgets:             []chatmodel.ColumnWidget{{DecoratedText: homeText}},
-		},
-		{
-			HorizontalSizeStyle: chatmodel.HorizontalSizeStyleFillAvailableSpace,
-			HorizontalAlignment: chatmodel.HorizontalAlignmentStart,
-			VerticalAlignment:   chatmodel.ColumnVerticalAlignmentCenter,
-			Widgets:             []chatmodel.ColumnWidget{{DecoratedText: awayText}},
-		},
-	}}}
+	return chatmodel.Widget{DecoratedText: dt}
 }
 
 // entry is a predicted game along with what is needed to order it.

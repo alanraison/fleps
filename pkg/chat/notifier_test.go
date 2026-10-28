@@ -82,15 +82,15 @@ func TestNotifyPredictionsBuildsCard(t *testing.T) {
 	if len(ws) != 2 {
 		t.Fatalf("expected 2 widgets, got %d", len(ws))
 	}
-	firstHome, firstAway := ws[1].Columns.ColumnItems[0].Widgets[0].DecoratedText, ws[1].Columns.ColumnItems[1].Widgets[0].DecoratedText
-	if firstHome.Text != "<b>Arsenal  2</b>" || firstAway.Text != "<b>1  Chelsea</b>" ||
-		firstHome.StartIcon.IconURL != "http://img/ars.png" || firstAway.EndIcon.IconURL != "http://img/che.png" {
-		t.Errorf("unexpected first widget: %+v %+v", firstHome, firstAway)
+	first := ws[1].DecoratedText
+	if first.Text != "<b>Arsenal</b> 2 – 1 <b>Chelsea</b>" ||
+		first.StartIcon.IconURL != "http://img/ars.png" || first.EndIcon.IconURL != "http://img/che.png" {
+		t.Errorf("unexpected first widget: %+v", first)
 	}
 	// Unknown team falls back to its key with no badge; missing badge omits the icon.
-	secondHome, secondAway := ws[0].Columns.ColumnItems[0].Widgets[0].DecoratedText, ws[0].Columns.ColumnItems[1].Widgets[0].DecoratedText
-	if secondHome.Text != "<b>B&#39;mth  0</b>" || secondAway.Text != "<b>0  XXX</b>" || secondHome.StartIcon != nil || secondAway.EndIcon != nil {
-		t.Errorf("unexpected second widget: %+v %+v", secondHome, secondAway)
+	second := ws[0].DecoratedText
+	if second.Text != "<b>B&#39;mth</b> 0 – 0 <b>XXX</b>" || second.StartIcon != nil || second.EndIcon != nil {
+		t.Errorf("unexpected second widget: %+v", second)
 	}
 }
 
@@ -131,11 +131,11 @@ func TestNotifyPredictionsOrdering(t *testing.T) {
 	}
 	var got []string
 	for _, w := range msg.CardsV2[0].Card.Sections[0].Widgets {
-		got = append(got, w.Columns.ColumnItems[0].Widgets[0].DecoratedText.Text+"|"+w.Columns.ColumnItems[1].Widgets[0].DecoratedText.Text)
+		got = append(got, w.DecoratedText.Text)
 	}
 	want := []string{
-		"<b>Villa  0</b>|<b>0  X</b>", "<b>Villa  0</b>|<b>0  Y</b>", "<b>Wolves  0</b>|<b>0  X</b>",
-		"<b>Burnley  0</b>|<b>0  X</b>", "<b>Arsenal  0</b>|<b>0  X</b>",
+		"<b>Villa</b> 0 – 0 <b>X</b>", "<b>Villa</b> 0 – 0 <b>Y</b>", "<b>Wolves</b> 0 – 0 <b>X</b>",
+		"<b>Burnley</b> 0 – 0 <b>X</b>", "<b>Arsenal</b> 0 – 0 <b>X</b>",
 	}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %q\nwant %q", got, want)
