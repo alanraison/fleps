@@ -165,6 +165,10 @@ resource "google_cloud_run_v2_service" "action" {
     containers {
       image = "${google_artifact_registry_repository.this.registry_uri}/action:latest"
       env {
+        name  = "MAIN_SPACE"
+        value = var.main_space
+      }
+      env {
         name  = "PGHOST"
         value = google_sql_database_instance.this.connection_name
       }

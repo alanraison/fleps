@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -71,5 +73,52 @@ func TestSubmitPredictionsRejectsInvalidGoals(t *testing.T) {
 	out := post(h, strings.Replace(submitBody, `["2"]`, `["x"]`, 1))
 	if !strings.Contains(out, "whole number") || preds.saved != nil {
 		t.Errorf("expected rejection, got %s", out)
+	}
+}
+
+type fakeNotifier struct {
+	calls  int
+	player model.Player
+	preds  model.GamePredictions
+	err    error
+}
+
+func (f *fakeNotifier) NotifyPredictions(_ context.Context, p model.Player, _ model.RoundID, g model.GamePredictions) error {
+	f.calls++
+	f.player, f.preds = p, g
+	return f.err
+}
+
+func TestSubmitPredictionsNotifies(t *testing.T) {
+	n := &fakeNotifier{}
+	h := &handler{
+		playerRepository:     fakePlayers{player: &model.Player{Email: "a@b.c", Name: "A", Active: true}},
+		predictionRepository: &fakePredictions{},
+		notifier:             n,
+	}
+	post(h, submitBody)
+	if n.calls != 1 || n.player.Name != "A" || len(n.preds) != 1 {
+		t.Errorf("unexpected notification: %+v", n)
+	}
+}
+
+func TestSubmitPredictionsNotifierFailureIsNonFatal(t *testing.T) {
+	n := &fakeNotifier{err: errors.New("boom")}
+	h := &handler{
+		playerRepository:     fakePlayers{player: &model.Player{Email: "a@b.c", Active: true}},
+		predictionRepository: &fakePredictions{},
+		notifier:             n,
+	}
+	if out := post(h, submitBody); !strings.Contains(out, "Predictions submitted") {
+		t.Errorf("unexpected response: %s", out)
+	}
+}
+
+func TestNoNotificationOnRejection(t *testing.T) {
+	n := &fakeNotifier{}
+	h := &handler{playerRepository: fakePlayers{}, predictionRepository: &fakePredictions{}, notifier: n}
+	post(h, submitBody)
+	if n.calls != 0 {
+		t.Errorf("expected no notification")
 	}
 }

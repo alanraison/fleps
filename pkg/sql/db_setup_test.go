@@ -26,6 +26,7 @@ func TestMain(m *testing.M) {
 			"../../sql/01_teams.sql",
 			"../../sql/02_fixtures.sql",
 			"../../sql/03_predictions.sql",
+			"../../sql/05_team_logos.sql",
 		),
 		postgres.BasicWaitStrategies(),
 	)

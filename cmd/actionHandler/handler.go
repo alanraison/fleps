@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,12 @@ import (
 type handler struct {
 	playerRepository     model.PlayerRepository
 	predictionRepository model.PredictionRepository
+	// notifier is optional; when set it announces submitted predictions.
+	notifier notifier
+}
+
+type notifier interface {
+	NotifyPredictions(ctx context.Context, player model.Player, round model.RoundID, predictions model.GamePredictions) error
 }
 
 var errNotAPlayer = errors.New("user is not a registered player")
@@ -32,7 +39,8 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	switch event.Parameters["actionName"] {
 	case chat.SubmitPredictionsAction:
-		if err := h.submitPredictions(event); err != nil {
+		saved, err := h.submitPredictions(event)
+		if err != nil {
 			fmt.Printf("Error submitting predictions: %v\n", err)
 			msg := "Sorry, your predictions couldn't be saved. Please try again later."
 			if errors.Is(err, errNotAPlayer) {
@@ -42,6 +50,11 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			writeJSON(w, chat.NewErrorNotification(msg))
 			return
+		}
+		if h.notifier != nil {
+			if err := h.notifier.NotifyPredictions(r.Context(), saved.player, saved.round, saved.predictions); err != nil {
+				fmt.Printf("Error notifying channel of predictions: %v\n", err)
+			}
 		}
 		writeJSON(w, chatmodel.RenderActions{
 			Action: &chatmodel.RenderAction{
@@ -63,21 +76,27 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 var errInvalidPrediction = errors.New("invalid prediction")
 
+type submission struct {
+	player      model.Player
+	round       model.RoundID
+	predictions model.GamePredictions
+}
+
 // submitPredictions saves the form inputs as predictions for the invoking user.
-func (h *handler) submitPredictions(event *chat.ActionEvent) error {
+func (h *handler) submitPredictions(event *chat.ActionEvent) (*submission, error) {
 	if event.UserEmail == "" {
-		return fmt.Errorf("action has no user: %w", errNotAPlayer)
+		return nil, fmt.Errorf("action has no user: %w", errNotAPlayer)
 	}
 	player, err := h.playerRepository.GetPlayerByEmail(event.UserEmail)
 	if err != nil {
-		return fmt.Errorf("getting player %q: %w", event.UserEmail, err)
+		return nil, fmt.Errorf("getting player %q: %w", event.UserEmail, err)
 	}
 	if player == nil || !player.Active {
-		return fmt.Errorf("player %q: %w", event.UserEmail, errNotAPlayer)
+		return nil, fmt.Errorf("player %q: %w", event.UserEmail, errNotAPlayer)
 	}
 	roundID := model.RoundID(event.Parameters["roundId"])
 	if roundID == "" {
-		return fmt.Errorf("action has no round: %w", errInvalidPrediction)
+		return nil, fmt.Errorf("action has no round: %w", errInvalidPrediction)
 	}
 	predictions := make(model.GamePredictions)
 	for name, value := range event.FormInputs {
@@ -87,7 +106,7 @@ func (h *handler) submitPredictions(event *chat.ActionEvent) error {
 		}
 		goals, err := parseGoals(value)
 		if err != nil {
-			return fmt.Errorf("%s goals for %v v %v: %w", side, game.HomeTeam, game.AwayTeam, err)
+			return nil, fmt.Errorf("%s goals for %v v %v: %w", side, game.HomeTeam, game.AwayTeam, err)
 		}
 		p := predictions[game]
 		if side == chat.HomeSide {
@@ -98,12 +117,12 @@ func (h *handler) submitPredictions(event *chat.ActionEvent) error {
 		predictions[game] = p
 	}
 	if len(predictions) == 0 {
-		return fmt.Errorf("no predictions submitted: %w", errInvalidPrediction)
+		return nil, fmt.Errorf("no predictions submitted: %w", errInvalidPrediction)
 	}
 	if err := h.predictionRepository.AddPredictions(player.Email, roundID, predictions); err != nil {
-		return fmt.Errorf("saving predictions for %q: %w", player.Email, err)
+		return nil, fmt.Errorf("saving predictions for %q: %w", player.Email, err)
 	}
-	return nil
+	return &submission{player: *player, round: roundID, predictions: predictions}, nil
 }
 
 func parseGoals(s string) (int, error) {
