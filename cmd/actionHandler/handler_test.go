@@ -22,11 +22,15 @@ type fakePredictions struct {
 	model.PredictionRepository
 	player string
 	saved  model.GamePredictions
+	skip   bool
 }
 
-func (f *fakePredictions) AddPredictions(p string, _ model.RoundID, g model.GamePredictions) error {
+func (f *fakePredictions) AddPredictions(p string, _ model.RoundID, g model.GamePredictions) (model.GamePredictions, error) {
 	f.player, f.saved = p, g
-	return nil
+	if f.skip {
+		return make(model.GamePredictions), nil
+	}
+	return g, nil
 }
 
 func post(h *handler, body string) string {
@@ -111,6 +115,23 @@ func TestSubmitPredictionsNotifierFailureIsNonFatal(t *testing.T) {
 	}
 	if out := post(h, submitBody); !strings.Contains(out, "Predictions submitted") {
 		t.Errorf("unexpected response: %s", out)
+	}
+}
+
+func TestSubmitPredictionsExplainsStartedMatchesWereSkipped(t *testing.T) {
+	preds := &fakePredictions{skip: true}
+	n := &fakeNotifier{}
+	h := &handler{
+		playerRepository:     fakePlayers{player: &model.Player{Email: "a@b.c", Active: true}},
+		predictionRepository: preds,
+		notifier:             n,
+	}
+	out := post(h, submitBody)
+	if !strings.Contains(out, "Started matches are locked") || !strings.Contains(out, "Existing predictions were kept") {
+		t.Errorf("expected started-match notification, got %s", out)
+	}
+	if n.calls != 0 {
+		t.Errorf("expected no notification for skipped predictions, got %d calls", n.calls)
 	}
 }
 

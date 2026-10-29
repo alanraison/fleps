@@ -34,8 +34,12 @@ var (
 			if err != nil {
 				return fmt.Errorf("reading prediction rows: %w", err)
 			}
-			if err := ctx.predictionRepo.AddPredictions(player, round, predictions); err != nil {
+			savedPredictions, err := ctx.predictionRepo.AddPredictions(player, round, predictions)
+			if err != nil {
 				return fmt.Errorf("adding predictions: %w", err)
+			}
+			if len(savedPredictions) < len(predictions) {
+				fmt.Fprintln(cmd.ErrOrStderr(), "Warning: matches that have started are locked; existing predictions were kept and new predictions for those matches were not recorded.")
 			}
 			return nil
 		},
