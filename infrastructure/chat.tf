@@ -22,6 +22,15 @@ resource "google_artifact_registry_repository" "this" {
   format        = "DOCKER"
   repository_id = "fleps"
 
+  cleanup_policies {
+    id     = "delete-untagged"
+    action = "DELETE"
+    condition {
+      tag_state  = "UNTAGGED"
+      older_than = "172800s"
+    }
+  }
+
   depends_on = [google_project_service.artifact_registry]
 }
 
