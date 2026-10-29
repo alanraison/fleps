@@ -52,8 +52,17 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if h.notifier != nil {
-			if err := h.notifier.NotifyPredictions(r.Context(), saved.player, saved.round, saved.predictions); err != nil {
-				fmt.Printf("Error notifying channel of predictions: %v\n", err)
+			if len(saved.predictions) > 0 {
+				if err := h.notifier.NotifyPredictions(r.Context(), saved.player, saved.round, saved.predictions); err != nil {
+					fmt.Printf("Error notifying channel of predictions: %v\n", err)
+				}
+			}
+		}
+		message := "Predictions submitted"
+		if saved.startedMatchesLocked {
+			message = "Started matches are locked. Existing predictions were kept, and new predictions were not recorded for those matches."
+			if len(saved.predictions) > 0 {
+				message += " Predictions for upcoming matches were submitted."
 			}
 		}
 		writeJSON(w, chatmodel.RenderActions{
@@ -65,7 +74,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						},
 					},
 				},
-				Notification: &chatmodel.Notification{Text: "Predictions submitted"},
+				Notification: &chatmodel.Notification{Text: message},
 			},
 		})
 	default:
@@ -77,9 +86,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var errInvalidPrediction = errors.New("invalid prediction")
 
 type submission struct {
-	player      model.Player
-	round       model.RoundID
-	predictions model.GamePredictions
+	player               model.Player
+	round                model.RoundID
+	predictions          model.GamePredictions
+	startedMatchesLocked bool
 }
 
 // submitPredictions saves the form inputs as predictions for the invoking user.
@@ -119,10 +129,16 @@ func (h *handler) submitPredictions(event *chat.ActionEvent) (*submission, error
 	if len(predictions) == 0 {
 		return nil, fmt.Errorf("no predictions submitted: %w", errInvalidPrediction)
 	}
-	if err := h.predictionRepository.AddPredictions(player.Email, roundID, predictions); err != nil {
+	savedPredictions, err := h.predictionRepository.AddPredictions(player.Email, roundID, predictions)
+	if err != nil {
 		return nil, fmt.Errorf("saving predictions for %q: %w", player.Email, err)
 	}
-	return &submission{player: *player, round: roundID, predictions: predictions}, nil
+	return &submission{
+		player:               *player,
+		round:                roundID,
+		predictions:          savedPredictions,
+		startedMatchesLocked: len(savedPredictions) < len(predictions),
+	}, nil
 }
 
 func parseGoals(s string) (int, error) {

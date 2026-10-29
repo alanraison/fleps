@@ -28,7 +28,7 @@ func TestShouldAddPrediction(t *testing.T) {
 	}
 	f := fs[0]
 
-	err = repo.AddPredictions(player, round, model.GamePredictions{
+	_, err = repo.AddPredictions(player, round, model.GamePredictions{
 		model.Game{
 			HomeTeam: f.HomeTeam,
 			AwayTeam: f.AwayTeam,
@@ -79,7 +79,7 @@ func TestShouldFailForUnknownFixture(t *testing.T) {
 
 	repo := NewPredictionRepository(db)
 
-	err := repo.AddPredictions(player, round, model.GamePredictions{
+	_, err := repo.AddPredictions(player, round, model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -122,7 +122,7 @@ func TestShouldAddMultiplePredictions(t *testing.T) {
 		AwayTeam: f.AwayTeam,
 	}
 
-	err = repo.AddPredictions(player1, round, model.GamePredictions{
+	_, err = repo.AddPredictions(player1, round, model.GamePredictions{
 		model.Game{
 			HomeTeam: f.HomeTeam,
 			AwayTeam: f.AwayTeam,
@@ -134,7 +134,7 @@ func TestShouldAddMultiplePredictions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddPredictions returned error: %v", err)
 	}
-	err = repo.AddPredictions(player2, round, model.GamePredictions{
+	_, err = repo.AddPredictions(player2, round, model.GamePredictions{
 		model.Game{
 			HomeTeam: f.HomeTeam,
 			AwayTeam: f.AwayTeam,
@@ -210,7 +210,7 @@ func TestShouldListRoundPredictions(t *testing.T) {
 		AwayTeam: f.AwayTeam,
 	}
 
-	err = repo.AddPredictions(player, round, model.GamePredictions{
+	_, err = repo.AddPredictions(player, round, model.GamePredictions{
 		game: model.Prediction{
 			HomeGoals: 2,
 			AwayGoals: 1,
@@ -247,11 +247,11 @@ func TestListPredictionsOrdersByKickoffLeagueAndHomeTeamName(t *testing.T) {
 		INSERT INTO teams (key, full_name, short_name, league)
 		VALUES ('NEW', 'Newcastle United', 'Newcastle', 2);
 		INSERT INTO fixtures (round_id, home_team, away_team, date_time) VALUES
-			('R1', 'ARS', 'CHE', '2023-10-03 15:00:00'),
-			('R1', 'NEW', 'ARS', '2023-10-02 15:00:00'),
-			('R1', 'LEE', 'MUN', '2023-10-02 15:00:00'),
-			('R1', 'CHE', 'ARS', '2023-10-02 15:00:00'),
-			('R1', 'LEE', 'CHE', '2023-10-01 15:00:00');
+			('R1', 'ARS', 'CHE', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') + INTERVAL '3 days'),
+			('R1', 'NEW', 'ARS', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') + INTERVAL '2 days'),
+			('R1', 'LEE', 'MUN', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') + INTERVAL '2 days'),
+			('R1', 'CHE', 'ARS', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') + INTERVAL '2 days'),
+			('R1', 'LEE', 'CHE', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') + INTERVAL '1 day');
 	`); err != nil {
 		t.Fatalf("failed to insert ordered prediction fixtures: %v", err)
 	}
@@ -265,7 +265,7 @@ func TestListPredictionsOrdersByKickoffLeagueAndHomeTeamName(t *testing.T) {
 	}
 	repo := NewPredictionRepository(db)
 	player := "alan.raison@gmail.com"
-	if err := repo.AddPredictions(player, "R1", games); err != nil {
+	if _, err := repo.AddPredictions(player, "R1", games); err != nil {
 		t.Fatalf("AddPredictions returned error: %v", err)
 	}
 
@@ -302,7 +302,7 @@ func TestShouldUpdateExistingPrediction(t *testing.T) {
 	game := model.Game{HomeTeam: fs[0].HomeTeam, AwayTeam: fs[0].AwayTeam}
 	repo := NewPredictionRepository(db)
 	for _, p := range []model.Prediction{{HomeGoals: 2, AwayGoals: 1}, {HomeGoals: 0, AwayGoals: 3}} {
-		if err := repo.AddPredictions(player, round, model.GamePredictions{game: p}); err != nil {
+		if _, err := repo.AddPredictions(player, round, model.GamePredictions{game: p}); err != nil {
 			t.Fatalf("AddPredictions returned error: %v", err)
 		}
 	}
@@ -312,6 +312,125 @@ func TestShouldUpdateExistingPrediction(t *testing.T) {
 	}
 	if got := predictions[0].Prediction; got != (model.Prediction{HomeGoals: 0, AwayGoals: 3}) {
 		t.Errorf("expected updated prediction, got %v", got)
+	}
+}
+
+func TestAddPredictionsSkipsStartedFixtureWithoutExistingPrediction(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
+	setupDefaultFixtureData(t, db)
+	setupDefaultPlayerData(t, db)
+
+	game := model.Game{HomeTeam: "LEE", AwayTeam: "MUN"}
+	if _, err := db.Exec(`
+		UPDATE fixtures
+		SET date_time = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 minute'
+		WHERE round_id = 'R1' AND home_team = 'LEE' AND away_team = 'MUN'
+	`); err != nil {
+		t.Fatalf("marking fixture as started: %v", err)
+	}
+
+	repo := NewPredictionRepository(db)
+	saved, err := repo.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+		game: {HomeGoals: 2, AwayGoals: 1},
+	})
+	if err != nil {
+		t.Fatalf("AddPredictions returned error: %v", err)
+	}
+	if len(saved) != 0 {
+		t.Fatalf("expected no saved predictions, got %v", saved)
+	}
+	got, err := repo.GetPredictionsForPlayer("alan.raison@gmail.com", "R1")
+	if err != nil {
+		t.Fatalf("GetPredictionsForPlayer returned error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("expected no stored predictions, got %v", got)
+	}
+}
+
+func TestAddPredictionsKeepsExistingPredictionForStartedFixture(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
+	setupDefaultFixtureData(t, db)
+	setupDefaultPlayerData(t, db)
+
+	player := "alan.raison@gmail.com"
+	game := model.Game{HomeTeam: "LEE", AwayTeam: "MUN"}
+	repo := NewPredictionRepository(db)
+	existing := model.Prediction{HomeGoals: 2, AwayGoals: 1}
+	if _, err := repo.AddPredictions(player, "R1", model.GamePredictions{game: existing}); err != nil {
+		t.Fatalf("adding initial prediction: %v", err)
+	}
+	if _, err := db.Exec(`
+		UPDATE fixtures
+		SET date_time = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 minute'
+		WHERE round_id = 'R1' AND home_team = 'LEE' AND away_team = 'MUN'
+	`); err != nil {
+		t.Fatalf("marking fixture as started: %v", err)
+	}
+
+	saved, err := repo.AddPredictions(player, "R1", model.GamePredictions{
+		game: {HomeGoals: 0, AwayGoals: 4},
+	})
+	if err != nil {
+		t.Fatalf("AddPredictions returned error: %v", err)
+	}
+	if len(saved) != 0 {
+		t.Fatalf("expected no saved predictions for started fixture, got %v", saved)
+	}
+	got, err := repo.GetPredictionsForPlayer(player, "R1")
+	if err != nil {
+		t.Fatalf("GetPredictionsForPlayer returned error: %v", err)
+	}
+	if got[game] != existing {
+		t.Fatalf("existing prediction changed: got %v, want %v", got[game], existing)
+	}
+}
+
+func TestAddPredictionsSavesUpcomingFixturesWhenAnotherHasStarted(t *testing.T) {
+	teardown, db := setupTestDB(t)
+	defer teardown(t)
+
+	setupDefaultTeamData(t, db)
+	setupDefaultRoundData(t, db)
+	setupDefaultFixtureData(t, db)
+	setupDefaultPlayerData(t, db)
+
+	started := model.Game{HomeTeam: "LEE", AwayTeam: "MUN"}
+	upcoming := model.Game{HomeTeam: "ARS", AwayTeam: "CHE"}
+	if _, err := db.Exec(`
+		UPDATE fixtures
+		SET date_time = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 minute'
+		WHERE round_id = 'R1' AND home_team = 'LEE' AND away_team = 'MUN'
+	`); err != nil {
+		t.Fatalf("marking fixture as started: %v", err)
+	}
+
+	repo := NewPredictionRepository(db)
+	predictions := model.GamePredictions{
+		started:  {HomeGoals: 2, AwayGoals: 1},
+		upcoming: {HomeGoals: 3, AwayGoals: 0},
+	}
+	saved, err := repo.AddPredictions("alan.raison@gmail.com", "R1", predictions)
+	if err != nil {
+		t.Fatalf("AddPredictions returned error: %v", err)
+	}
+	if len(saved) != 1 || saved[upcoming] != predictions[upcoming] {
+		t.Fatalf("unexpected saved predictions: %v", saved)
+	}
+	got, err := repo.GetPredictionsForPlayer("alan.raison@gmail.com", "R1")
+	if err != nil {
+		t.Fatalf("GetPredictionsForPlayer returned error: %v", err)
+	}
+	if len(got) != 1 || got[upcoming] != predictions[upcoming] {
+		t.Fatalf("unexpected stored predictions: %v", got)
 	}
 }
 
@@ -338,7 +457,7 @@ func TestShouldGetPredictionsForPlayer(t *testing.T) {
 		t.Fatalf("expected no predictions, got %v, %v", none, err)
 	}
 	want := model.Prediction{HomeGoals: 2, AwayGoals: 1}
-	if err := repo.AddPredictions(player, round, model.GamePredictions{game: want}); err != nil {
+	if _, err := repo.AddPredictions(player, round, model.GamePredictions{game: want}); err != nil {
 		t.Fatalf("AddPredictions returned error: %v", err)
 	}
 	got, err := repo.GetPredictionsForPlayer(player, round)

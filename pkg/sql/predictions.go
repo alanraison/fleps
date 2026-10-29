@@ -17,18 +17,22 @@ func NewPredictionRepository(db *sql.DB) *predictionRepository {
 	}
 }
 
-// AddPredictions adds predictions to the repository.
+// AddPredictions saves predictions for fixtures that have not kicked off and returns the
+// predictions that were written. Started fixtures are omitted and any existing predictions
+// for them remain unchanged.
 //
 // player is the email of the player making the predictions and must already have been added.
 //
 // roundID is the ID of the round for which the predictions are being made.
 //
 // predictions is a map of games to the predicted outcomes. Existing predictions for the
-// same player and fixture are replaced.
-func (r *predictionRepository) AddPredictions(player string, roundID model.RoundID, predictions model.GamePredictions) (err error) {
+// same player and fixture are replaced only before kickoff; predictions for started fixtures
+// remain unchanged.
+func (r *predictionRepository) AddPredictions(player string, roundID model.RoundID, predictions model.GamePredictions) (saved model.GamePredictions, err error) {
+	saved = make(model.GamePredictions)
 	tx, err := r.db.Begin()
 	if err != nil {
-		return fmt.Errorf("starting transaction: %w", err)
+		return nil, fmt.Errorf("starting transaction: %w", err)
 	}
 	defer func() {
 		if err != nil {
@@ -49,7 +53,7 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 		AND away_team = $2
 		AND round_id = $3`)
 	if err != nil {
-		return fmt.Errorf("preparing check fixture statement: %w", err)
+		return nil, fmt.Errorf("preparing check fixture statement: %w", err)
 	}
 	insertPredictionStmt, err := tx.Prepare(`
 		INSERT INTO 
@@ -59,11 +63,14 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 				home_goals, 
 				away_goals
 			)
-		VALUES ($1, $2, $3, $4)
+		SELECT $1, fixtures.id, $3, $4
+		FROM fixtures
+		WHERE fixtures.id = $2
+		AND fixtures.date_time > (clock_timestamp() AT TIME ZONE 'UTC')
 		ON CONFLICT (player, fixture_id) DO UPDATE
 		SET home_goals = EXCLUDED.home_goals, away_goals = EXCLUDED.away_goals`)
 	if err != nil {
-		return fmt.Errorf("preparing insert prediction statement: %w", err)
+		return nil, fmt.Errorf("preparing insert prediction statement: %w", err)
 	}
 	defer insertPredictionStmt.Close()
 	defer checkFixtureStmt.Close()
@@ -72,18 +79,25 @@ func (r *predictionRepository) AddPredictions(player string, roundID model.Round
 		var fixtureID int
 		err = checkFixtureStmt.QueryRow(game.HomeTeam, game.AwayTeam, roundID).Scan(&fixtureID)
 		if err == sql.ErrNoRows {
-			return fmt.Errorf("unknown fixture: %v: %v v %v %w", roundID, game.HomeTeam, game.AwayTeam, model.UnknownFixtureErr)
+			return nil, fmt.Errorf("unknown fixture: %v: %v v %v %w", roundID, game.HomeTeam, game.AwayTeam, model.UnknownFixtureErr)
 		}
 		if err != nil {
-			return fmt.Errorf("finding fixture id: %w", err)
+			return nil, fmt.Errorf("finding fixture id: %w", err)
 		}
-		_, err = insertPredictionStmt.Exec(
+		result, err := insertPredictionStmt.Exec(
 			player, fixtureID, pred.HomeGoals, pred.AwayGoals)
 		if err != nil {
-			return fmt.Errorf("inserting prediction: %w", err)
+			return nil, fmt.Errorf("inserting prediction: %w", err)
+		}
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return nil, fmt.Errorf("checking inserted prediction rows: %w", err)
+		}
+		if rowsAffected == 1 {
+			saved[game] = pred
 		}
 	}
-	return nil
+	return saved, nil
 }
 
 func (r *predictionRepository) ListPredictions(roundID model.RoundID) (model.PlayerPredictions, error) {

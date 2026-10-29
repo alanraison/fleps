@@ -96,7 +96,9 @@ type PlayerPrediction struct {
 }
 type PlayerPredictions []PlayerPrediction
 type PredictionRepository interface {
-	AddPredictions(player string, roundID RoundID, predictions GamePredictions) error
+	// AddPredictions stores eligible predictions and returns the predictions that were saved.
+	// Fixtures whose kickoff has passed are omitted, and any existing prediction for them is unchanged.
+	AddPredictions(player string, roundID RoundID, predictions GamePredictions) (GamePredictions, error)
 	ListPredictions(roundID RoundID) (PlayerPredictions, error)
 	// GetPredictionsForPlayer returns the player's predictions for a round, empty if they have made none.
 	GetPredictionsForPlayer(player string, roundID RoundID) (GamePredictions, error)

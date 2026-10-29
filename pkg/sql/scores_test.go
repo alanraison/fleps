@@ -19,7 +19,7 @@ func TestCalculatePlayerRoundScore_AllWrong(t *testing.T) {
 	rr := NewResultRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -76,7 +76,7 @@ func TestCalculatePlayerRoundScore_CorrectResult_HomeWin(t *testing.T) {
 	rr := NewResultRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -119,7 +119,7 @@ func TestCalculatePlayerRoundScore_CorrectResult_Draw(t *testing.T) {
 	rr := NewResultRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -162,7 +162,7 @@ func TestCalculatePlayerRoundScore_CorrectResult_AwayWin(t *testing.T) {
 	rr := NewResultRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -205,7 +205,7 @@ func TestCalculatePlayerRoundScore_CorrectScore(t *testing.T) {
 	rr := NewResultRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -248,7 +248,7 @@ func TestCalculatePlayerRoundScore_MultiplePoints(t *testing.T) {
 	pr := NewPredictionRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -290,7 +290,7 @@ func TestCalculateRoundScores(t *testing.T) {
 	pr := NewPredictionRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -309,7 +309,7 @@ func TestCalculateRoundScores(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add predictions: %v", err)
 	}
-	err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
+	_, err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -361,7 +361,7 @@ func TestCalculateRoundScoresWithMissingPredictions(t *testing.T) {
 	pr := NewPredictionRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -380,7 +380,7 @@ func TestCalculateRoundScoresWithMissingPredictions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add predictions: %v", err)
 	}
-	err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
+	_, err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "ARS",
 			AwayTeam: "CHE",
@@ -425,7 +425,7 @@ func TestCalculateSeasonScores_FirstRound_OnePlayer(t *testing.T) {
 	pr := NewPredictionRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -472,12 +472,12 @@ func TestCalculateSeasonScores_FirstRound_TwoPlayers(t *testing.T) {
 	pr := NewPredictionRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{})
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{})
 	if err != nil {
 		t.Fatalf("failed to add predictions: %v", err)
 	}
 
-	err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
+	_, err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -496,7 +496,7 @@ func TestCalculateSeasonScores_FirstRound_TwoPlayers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add predictions for another player: %v", err)
 	}
-	err = pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err = pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -545,7 +545,7 @@ func TestCalculateSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 	pr := NewPredictionRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -565,7 +565,7 @@ func TestCalculateSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 		t.Fatalf("failed to add predictions: %v", err)
 	}
 
-	err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
+	_, err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -585,7 +585,7 @@ func TestCalculateSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 		t.Fatalf("failed to add predictions for another player: %v", err)
 	}
 
-	err = pr.AddPredictions("alan.raison@gmail.com", "R2", model.GamePredictions{
+	_, err = pr.AddPredictions("alan.raison@gmail.com", "R2", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "CHE",
@@ -598,7 +598,7 @@ func TestCalculateSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 		t.Fatalf("failed to add predictions: %v", err)
 	}
 
-	err = pr.AddPredictions("another.player@example.com", "R2", model.GamePredictions{
+	_, err = pr.AddPredictions("another.player@example.com", "R2", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "CHE",
@@ -645,7 +645,7 @@ func TestCalculateCurrentSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 	pr := NewPredictionRepository(db)
 	ss := NewDBScoreService(db)
 
-	err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
+	_, err := pr.AddPredictions("alan.raison@gmail.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -665,7 +665,7 @@ func TestCalculateCurrentSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 		t.Fatalf("failed to add predictions: %v", err)
 	}
 
-	err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
+	_, err = pr.AddPredictions("another.player@example.com", "R1", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "MUN",
@@ -685,7 +685,7 @@ func TestCalculateCurrentSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 		t.Fatalf("failed to add predictions for another player: %v", err)
 	}
 
-	err = pr.AddPredictions("alan.raison@gmail.com", "R2", model.GamePredictions{
+	_, err = pr.AddPredictions("alan.raison@gmail.com", "R2", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "CHE",
@@ -698,7 +698,7 @@ func TestCalculateCurrentSeasonScores_TwoRounds_TwoPlayers(t *testing.T) {
 		t.Fatalf("failed to add predictions: %v", err)
 	}
 
-	err = pr.AddPredictions("another.player@example.com", "R2", model.GamePredictions{
+	_, err = pr.AddPredictions("another.player@example.com", "R2", model.GamePredictions{
 		model.Game{
 			HomeTeam: "LEE",
 			AwayTeam: "CHE",

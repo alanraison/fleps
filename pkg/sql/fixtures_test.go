@@ -11,9 +11,9 @@ import (
 
 // setupDefaultFixtureData inserts default fixtures into the database:
 //
-//   - R1: LEE vs MUN on 2023-10-01 15:00:00
-//   - R1: ARS vs CHE on 2023-10-02 16:00:00
-//   - R2: LEE vs CHE on 2023-10-03 15:00:00
+//   - R1: LEE vs MUN tomorrow
+//   - R1: ARS vs CHE in two days
+//   - R2: LEE vs CHE in three days
 //
 // Depends on setupDefaultTeamData and setupDefaultRoundData being called before it.
 func setupDefaultFixtureData(tb testing.TB, db *sql.DB) {
@@ -21,9 +21,9 @@ func setupDefaultFixtureData(tb testing.TB, db *sql.DB) {
 
 	if _, err := db.Exec(`
 		INSERT INTO fixtures (round_id, home_team, away_team, date_time) VALUES
-		('R1', 'LEE', 'MUN', '2023-10-01 15:00:00'),
-		('R1', 'ARS', 'CHE', '2023-10-02 16:00:00'),
-		('R2', 'LEE', 'CHE', '2023-10-03 15:00:00');
+		('R1', 'LEE', 'MUN', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') + INTERVAL '1 day'),
+		('R1', 'ARS', 'CHE', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') + INTERVAL '2 days'),
+		('R2', 'LEE', 'CHE', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') + INTERVAL '3 days');
 	`); err != nil {
 		tb.Fatalf("failed to insert test data: %v", err)
 	}
