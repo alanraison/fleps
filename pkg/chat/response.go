@@ -28,7 +28,8 @@ func NewErrorNotification(text string) chatmodel.RenderActions {
 }
 
 // NewResponseMessageWithImage returns a response which posts a card containing
-// the image at imageURL.
+// the image at imageURL. Chat shows a downscaled copy in the card, so the image
+// and a button both link to the full-resolution original.
 func NewResponseMessageWithImage(title, imageURL, altText string) chatmodel.DataActionsMarkup {
 	return chatmodel.DataActionsMarkup{
 		HostAppDataAction: &chatmodel.HostAppDataActionMarkup{
@@ -41,7 +42,16 @@ func NewResponseMessageWithImage(title, imageURL, altText string) chatmodel.Data
 								Header: &chatmodel.CardHeader{Title: title},
 								Sections: []chatmodel.Section{{
 									Widgets: []chatmodel.Widget{{
-										Image: &chatmodel.Image{ImageURL: imageURL, AltText: altText},
+										Image: &chatmodel.Image{
+											ImageURL: imageURL,
+											AltText:  altText,
+											OnClick:  &chatmodel.OnClick{OpenLink: &chatmodel.OpenLink{URL: imageURL}},
+										},
+									}, {
+										ButtonList: &chatmodel.ButtonList{Buttons: []chatmodel.Button{{
+											Text:    "View full size",
+											OnClick: &chatmodel.OnClick{OpenLink: &chatmodel.OpenLink{URL: imageURL}},
+										}}},
 									}},
 								}},
 							},
