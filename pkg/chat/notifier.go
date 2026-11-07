@@ -120,7 +120,6 @@ func (n *Notifier) predictionsMessage(ctx context.Context, name string, round mo
 		widgets = append(widgets, predictionWidget(n.side(ctx, g.HomeTeam), n.side(ctx, g.AwayTeam), predictions[g]))
 	}
 	return &chatmodel.Message{
-		Text: fmt.Sprintf("%s has submitted predictions for round %s", name, round),
 		CardsV2: []chatmodel.CardWithID{{
 			CardID: "predictions",
 			Card: &chatmodel.Card{
