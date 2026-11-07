@@ -1,12 +1,14 @@
 package chat
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
-	"sort"
+	"slices"
+	"time"
 
 	chatmodel "github.com/alanraison/fleps/pkg/chat/model"
 	"github.com/alanraison/fleps/pkg/model"
@@ -30,27 +32,34 @@ type BadgeFinder interface {
 	BadgeURL(ctx context.Context, team model.Team, slug string) (string, error)
 }
 
+// FixtureFinder lists the fixtures of a round.
+type FixtureFinder interface {
+	ListFixtures(round model.RoundID) ([]model.Fixture, error)
+}
+
 // Notifier posts messages to a Chat space as the Fleps app.
 type Notifier struct {
-	space  string
-	teams  TeamFinder
-	logos  LogoFinder
-	badges BadgeFinder
-	create func(ctx context.Context, space string, msg *chatmodel.Message) error
+	space    string
+	teams    TeamFinder
+	fixtures FixtureFinder
+	logos    LogoFinder
+	badges   BadgeFinder
+	create   func(ctx context.Context, space string, msg *chatmodel.Message) error
 }
 
 // NewNotifier creates a Notifier posting to the given space (e.g. "spaces/AAAA")
 // using application default credentials.
-func NewNotifier(ctx context.Context, space string, teams TeamFinder, logos LogoFinder, badges BadgeFinder) (*Notifier, error) {
+func NewNotifier(ctx context.Context, space string, teams TeamFinder, fixtures FixtureFinder, logos LogoFinder, badges BadgeFinder) (*Notifier, error) {
 	svc, err := chatapi.NewService(ctx, option.WithScopes("https://www.googleapis.com/auth/chat.bot"))
 	if err != nil {
 		return nil, fmt.Errorf("creating chat service: %w", err)
 	}
 	return &Notifier{
-		space:  space,
-		teams:  teams,
-		logos:  logos,
-		badges: badges,
+		space:    space,
+		teams:    teams,
+		fixtures: fixtures,
+		logos:    logos,
+		badges:   badges,
 		create: func(ctx context.Context, space string, msg *chatmodel.Message) error {
 			raw, err := json.Marshal(msg)
 			if err != nil {
@@ -70,7 +79,10 @@ func NewNotifier(ctx context.Context, space string, teams TeamFinder, logos Logo
 
 // NotifyPredictions announces a player's submitted predictions in the space.
 func (n *Notifier) NotifyPredictions(ctx context.Context, player model.Player, round model.RoundID, predictions model.GamePredictions) error {
-	msg := n.predictionsMessage(ctx, player.Name, round, predictions)
+	msg, err := n.predictionsMessage(ctx, player.Name, round, predictions)
+	if err != nil {
+		return fmt.Errorf("building predictions message for %q: %w", player.Email, err)
+	}
 	if err := n.create(ctx, n.space, msg); err != nil {
 		return fmt.Errorf("posting predictions for %q to %q: %w", player.Email, n.space, err)
 	}
@@ -79,8 +91,9 @@ func (n *Notifier) NotifyPredictions(ctx context.Context, player model.Player, r
 
 // side is a team as displayed in the card.
 type side struct {
-	name  string
-	badge string
+	name   string
+	badge  string
+	league int
 }
 
 func (n *Notifier) side(ctx context.Context, key model.TeamKey) side {
@@ -91,6 +104,7 @@ func (n *Notifier) side(ctx context.Context, key model.TeamKey) side {
 		return s
 	}
 	s.name = team.ShortName
+	s.league = team.League
 	slug, err := n.logos.FindLogoSlugByTeamKey(key)
 	if err != nil && !errors.Is(err, model.UnknownLogoErr) {
 		fmt.Printf("Error finding logo for team %q: %v\n", key, err)
@@ -104,20 +118,31 @@ func (n *Notifier) side(ctx context.Context, key model.TeamKey) side {
 	return s
 }
 
-func (n *Notifier) predictionsMessage(ctx context.Context, name string, round model.RoundID, predictions model.GamePredictions) *chatmodel.Message {
-	games := make([]model.Game, 0, len(predictions))
-	for g := range predictions {
-		games = append(games, g)
+func (n *Notifier) predictionsMessage(ctx context.Context, name string, round model.RoundID, predictions model.GamePredictions) (*chatmodel.Message, error) {
+	fixtures, err := n.fixtures.ListFixtures(round)
+	if err != nil {
+		return nil, fmt.Errorf("listing fixtures for round %q: %w", round, err)
 	}
-	sort.Slice(games, func(i, j int) bool {
-		if games[i].HomeTeam != games[j].HomeTeam {
-			return games[i].HomeTeam < games[j].HomeTeam
+	var entries []entry
+	for _, f := range fixtures {
+		if p, ok := predictions[model.Game{HomeTeam: f.HomeTeam, AwayTeam: f.AwayTeam}]; ok {
+			entries = append(entries, entry{
+				date: f.Date, home: n.side(ctx, f.HomeTeam), away: n.side(ctx, f.AwayTeam), prediction: p,
+			})
 		}
-		return games[i].AwayTeam < games[j].AwayTeam
+	}
+	// Kick-off time, then the home team's league rank, then team names.
+	slices.SortStableFunc(entries, func(a, b entry) int {
+		return cmp.Or(
+			a.date.Compare(b.date),
+			cmp.Compare(a.home.league, b.home.league),
+			cmp.Compare(a.home.name, b.home.name),
+			cmp.Compare(a.away.name, b.away.name),
+		)
 	})
-	widgets := make([]chatmodel.Widget, 0, len(games))
-	for _, g := range games {
-		widgets = append(widgets, predictionWidget(n.side(ctx, g.HomeTeam), n.side(ctx, g.AwayTeam), predictions[g]))
+	widgets := make([]chatmodel.Widget, 0, len(entries))
+	for _, e := range entries {
+		widgets = append(widgets, predictionWidget(e.home, e.away, e.prediction))
 	}
 	return &chatmodel.Message{
 		CardsV2: []chatmodel.CardWithID{{
@@ -127,7 +152,7 @@ func (n *Notifier) predictionsMessage(ctx context.Context, name string, round mo
 				Sections: []chatmodel.Section{{Widgets: widgets}},
 			},
 		}},
-	}
+	}, nil
 }
 
 func predictionWidget(home, away side, p model.Prediction) chatmodel.Widget {
@@ -141,4 +166,10 @@ func predictionWidget(home, away side, p model.Prediction) chatmodel.Widget {
 		dt.EndIcon = &chatmodel.Icon{IconURL: away.badge, AltText: away.name}
 	}
 	return chatmodel.Widget{DecoratedText: dt}
+}
+// entry is a predicted game along with what is needed to order it.
+type entry struct {
+	date       time.Time
+	home, away side
+	prediction model.Prediction
 }
